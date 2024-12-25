@@ -4,7 +4,7 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0);
 
 TaskHandle_t DisplayTask;
 
-#define SLEEP_AFTER_MS 60 * 1000 // sleep after 10 seconds
+#define SLEEP_AFTER_MS 60 * 30000 // sleep after 10 seconds
 
 void CenterPrintToScreen(char const *str, u8g2_uint_t y) {
   u8g2_uint_t width = u8g2.getStrWidth(str);
