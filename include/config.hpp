@@ -6,6 +6,8 @@
 #include <AiEsp32RotaryEncoder.h>
 #include <Preferences.h>
 #include <MathBuffer.h>
+#include <SPI.h>
+#include <U8g2lib.h>
 
 // Declarations of global variables (no memory allocation here)
 extern Preferences preferences;       // Preferences object
@@ -25,6 +27,7 @@ class MenuItem
         double *value;
 };
 
+//Main Variables and Pins
 #define STATUS_EMPTY 0
 #define STATUS_GRINDING_IN_PROGRESS 1
 #define STATUS_GRINDING_FINISHED 2
@@ -57,6 +60,7 @@ class MenuItem
 #define ROTARY_ENCODER_VCC_PIN -1
 #define ROTARY_ENCODER_STEPS 4
 
+// External User Variables
 extern double scaleWeight;
 extern unsigned long scaleLastUpdatedAt;
 extern unsigned long lastSignificantWeightChangeAt;
@@ -73,9 +77,6 @@ extern bool grindMode;
 extern bool greset;
 extern int menuItemsCount;
 extern double setCupWeight;
-
 extern MenuItem menuItems[];
 extern int currentMenuItem;
 extern int currentSetting;
-
-void setupScale();

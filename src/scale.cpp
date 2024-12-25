@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "rotary.hpp"
+#include "scale.hpp"
 
 // Variables for scale functionality
 double scaleWeight = 0;       // Current weight measured by the scale

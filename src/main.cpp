@@ -4,6 +4,7 @@
 
 
 #include "display.hpp"
+#include "scale.hpp"
 #include "config.hpp"
 
 // Definitions of global variables (memory allocated here)
