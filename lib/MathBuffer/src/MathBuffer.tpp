@@ -108,3 +108,5 @@ T MathBuffer<T, S>::firstValueOlderThan(int64_t cutoffMs) {
   return 0;
 }
 
+// Macro to calculate the absolute value
+#define ABS(a) (((a) > 0) ? (a) : ((a) * -1))

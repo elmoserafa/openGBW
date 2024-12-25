@@ -2,6 +2,18 @@
 
 #include <SimpleKalmanFilter.h>
 #include "HX711.h"
+#include <MathBuffer.h>
+#include <AiEsp32RotaryEncoder.h>
+#include <Preferences.h>
+#include <MathBuffer.h>
+
+// Declarations of global variables (no memory allocation here)
+extern Preferences preferences;       // Preferences object
+extern HX711 loadcell;                // HX711 load cell object
+extern SimpleKalmanFilter kalmanFilter; // Kalman filter for smoothing weight measurements
+
+extern TaskHandle_t ScaleTask;        // Task handle for the scale task
+extern TaskHandle_t ScaleStatusTask;  // Task handle for the scale status task
 
 class MenuItem
 {
@@ -60,6 +72,7 @@ extern bool scaleMode;
 extern bool grindMode;
 extern bool greset;
 extern int menuItemsCount;
+extern double setCupWeight;
 
 extern MenuItem menuItems[];
 extern int currentMenuItem;
