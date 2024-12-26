@@ -17,8 +17,7 @@ int encoderValue = 0; // Current value of the rotary encoder
 // Incase you can't set something you can exit
 void exitToMenu()
 {
-    // Reset the state to the main menu or empty status
-    if (scaleStatus == STATUS_IN_SUBMENU)
+    if (scaleStatus == STATUS_IN_SUBMENU || scaleStatus == STATUS_INFO_MENU)
     {
         scaleStatus = STATUS_IN_MENU;
         currentSetting = -1;
@@ -49,66 +48,60 @@ void rotary_onButtonClick()
     }
     else if (scaleStatus == STATUS_IN_MENU)
     {
-        // Handle menu navigation
         switch (currentMenuItem)
         {
-        case 5:
+        case 6: // Exit
             scaleStatus = STATUS_EMPTY;
             rotaryEncoder.setAcceleration(100);
             Serial.println("Exited Menu");
             break;
-        case 2:
-        {
+        case 2: // Offset Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 2;
             Serial.println("Offset Menu");
             break;
-        }
-        case 0:
-        {
+        case 0: // Cup Weight Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 0;
             Serial.println("Cup Menu");
             break;
-        }
-        case 1:
-        {
+        case 1: // Calibration Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 1;
             Serial.println("Calibration Menu");
             break;
-        }
-        case 3:
-        {
+        case 3: // Scale Mode Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 3;
             Serial.println("Scale Mode Menu");
             break;
-        }
-        case 4:
-        {
+        case 4: // Grinding Mode Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 4;
             Serial.println("Grind Mode Menu");
             break;
-        }
-        case 6:
-        {
+        case 5: // Info Menu
+            scaleStatus = STATUS_IN_SUBMENU;
+            currentSetting = 5;
+            greset = false;
+            Serial.println("Info Menu");
+            break;
+        case 7: // Reset Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 6;
-            greset = false;
+            greset = true;
             Serial.println("Reset Menu");
             break;
         }
-        }
     }
+
     else if (scaleStatus == STATUS_IN_SUBMENU)
     {
         // Handle submenu actions based on the current setting
         switch (currentSetting)
         {
         case 2:
-        {
+        { // Offset Menu
             preferences.begin("scale", false);
             preferences.putDouble("offset", offset);
             preferences.end();
@@ -142,8 +135,7 @@ void rotary_onButtonClick()
             }
             break;
         }
-
-        case 1:
+        case 1: //calibration menu
         {
             preferences.begin("scale", false);
             double newCalibrationValue = preferences.getDouble("calibration", 1.0) * (scaleWeight / 100);
@@ -155,7 +147,7 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 3:
+        case 3: //scale menu
         {
             preferences.begin("scale", false);
             preferences.putBool("scaleMode", scaleMode);
@@ -164,7 +156,7 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 4:
+        case 4: //grinding menu
         {
             preferences.begin("scale", false);
             preferences.putBool("grindMode", grindMode);
@@ -173,7 +165,7 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 6:
+        case 6: //reset
         {
             if (greset)
             {
@@ -194,6 +186,18 @@ void rotary_onButtonClick()
             }
             scaleStatus = STATUS_IN_MENU;
             currentSetting = -1;
+            break;
+        }
+        case 5: 
+        { // Info Menu
+            // Lock the display and show the Info Menu
+            displayLock = true;
+            showInfoMenu();
+            delay(3000); // Keep the Info Menu visible for 3 seconds
+            displayLock = false;
+
+            // After showing the info, return to the main menu
+            exitToMenu();
             break;
         }
         }

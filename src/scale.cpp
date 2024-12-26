@@ -26,19 +26,6 @@ unsigned long finishedGrindingAt = 0; // Timestamp of when grinding finished
 bool greset = false;          // Flag for reset operation
 bool newOffset = false;       // Indicates if a new offset value is pending
 
-// Menu items for user interface
-int currentMenuItem = 0;      // Index of the current menu item
-int currentSetting;           // Index of the current setting being adjusted
-int menuItemsCount = 7;       // Total number of menu items
-MenuItem menuItems[7] = {
-    {1, false, "Cup weight", 1, &setCupWeight},
-    {2, false, "Calibrate", 0},
-    {3, false, "Offset", 0.1, &offset},
-    {4, false, "Scale Mode", 0},
-    {5, false, "Grinding Mode", 0},
-    {6, false, "Exit", 0},
-    {7, false, "Reset", 0}}; // Menu items for settings and calibration
-
 // Tares the scale (sets the current weight to zero)
 void tareScale() {
     Serial.println("Taring scale");

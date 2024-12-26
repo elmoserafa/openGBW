@@ -34,6 +34,7 @@ class MenuItem
 #define STATUS_GRINDING_FAILED 3
 #define STATUS_IN_MENU 4
 #define STATUS_IN_SUBMENU 5
+#define STATUS_INFO_MENU 8
 
 #define CUP_WEIGHT 70
 #define CUP_DETECTION_TOLERANCE 5 // 5 grams tolerance above or bellow cup weight to detect it

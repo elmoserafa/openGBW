@@ -40,6 +40,24 @@ void RightPrintToScreen(char const *str, u8g2_uint_t y)
   screen.print(str);                           // Print the text
 }
 
+//MENU 
+
+// Menu items for user interface
+int currentMenuItem = 0;      // Index of the current menu item
+int currentSetting;           // Index of the current setting being adjusted
+int menuItemsCount = 8;       // Total number of menu items
+
+ // Menu items for settings and calibration
+MenuItem menuItems[8] = {
+    {0, false, "Cup weight", 1, &setCupWeight},
+    {1, false, "Calibrate", 0},
+    {2, false, "Offset", 0.1, &offset},
+    {3, false, "Scale Mode", 0},
+    {4, false, "Grinding Mode", 0},
+    {5, false, "Info Menu", 0},
+    {6, false, "Exit", 0},
+    {7, false, "Reset", 0}};
+
 // Function to display the menu with previous, current, and next items
 void showMenu()
 {
@@ -187,6 +205,36 @@ void showResetMenu()
   screen.sendBuffer(); // Send the buffer to the display
 }
 
+void showInfoMenu() {
+    char buf[32];
+
+    // Clear the buffer and set font
+    screen.clearBuffer();
+    screen.setFontPosTop();
+    screen.setFont(u8g2_font_7x14B_tf);
+
+    // Display title
+    CenterPrintToScreen("System Info", 0);
+
+    // Display cup weight
+    screen.setFont(u8g2_font_7x13_tr);
+    snprintf(buf, sizeof(buf), "Cup Weight: %3.1fg", setCupWeight);
+    LeftPrintToScreen(buf, 16);
+
+    // Display offset
+    snprintf(buf, sizeof(buf), "Offset: %3.2fg", offset);
+    LeftPrintToScreen(buf, 32);
+
+    // Display software version
+    snprintf(buf, sizeof(buf), "Version: 1.0.0");
+    LeftPrintToScreen(buf, 48);
+
+    // Send buffer to the display
+    screen.sendBuffer();
+
+    // No unnecessary delays or clearing here
+}
+
 // Function to display the appropriate menu or setting based on the current state
 void showSetting()
 {
@@ -213,6 +261,10 @@ void showSetting()
   else if (currentSetting == 6)
   {
     showResetMenu();
+  }
+  else if (currentSetting == 7)
+  {
+    showInfoMenu();
   }
 }
 
@@ -343,6 +395,12 @@ void updateDisplay(void *parameter)
       else if (scaleStatus == STATUS_IN_SUBMENU)
       {
         showSetting();
+      }
+      else if (scaleStatus == STATUS_INFO_MENU)
+      {
+        showInfoMenu(); // Continuously display the Info Menu while in this state
+        delay(100);     // Add a small delay to avoid rapid screen updates
+        continue;       // Skip the rest of the update logic
       }
     }
     screen.sendBuffer(); // Send the buffer to the display

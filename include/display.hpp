@@ -6,3 +6,4 @@
 
 void setupDisplay();
 void showCupWeightSetScreen(double cupWeight);
+void showInfoMenu();
