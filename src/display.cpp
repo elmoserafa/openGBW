@@ -64,6 +64,7 @@ void wakeScreen() {
     // Reset the sleep timer and update the display
     lastSignificantWeightChangeAt = millis();
     screenJustWoke = true; // Indicate that the screen just woke up
+    scaleStatus = STATUS_EMPTY;
     screen.clearBuffer();
     screen.sendBuffer();
 }
@@ -321,6 +322,7 @@ void updateDisplay(void *parameter)
     {
       screen.sendBuffer(); // Send the buffer to the display to "sleep"
       delay(100);
+      scaleStatus = STATUS_EMPTY;
       continue;
     }
 
