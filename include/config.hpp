@@ -86,3 +86,4 @@ extern MenuItem menuItems[];
 extern int currentMenuItem;
 extern int currentSetting;
 extern int sleepTime;
+extern bool screenJustWoke;

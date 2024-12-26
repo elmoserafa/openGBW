@@ -46,7 +46,7 @@ void rotary_onButtonClick()
         currentMenuItem = 0;
         rotaryEncoder.setAcceleration(0);
     }
-        else if (scaleStatus == STATUS_IN_MENU)
+    else if (scaleStatus == STATUS_IN_MENU)
     {
         switch (currentMenuItem)
         {
@@ -231,6 +231,12 @@ void rotary_loop()
         {
         case STATUS_EMPTY:
         {
+            if (screenJustWoke)
+            {
+                // Skip modifying the set weight if the screen just woke up
+                screenJustWoke = false; // Reset the flag
+                break;
+            }
             // Adjust weight when in scale mode
             int newValue = rotaryEncoder.readEncoder();
             setWeight += ((float)newValue - (float)encoderValue) / 10 * encoderDir;

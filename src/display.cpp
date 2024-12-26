@@ -5,6 +5,7 @@ TaskHandle_t DisplayTask;
 
 // Time in milliseconds after which the display sleeps (10 seconds)
 int sleepTime = SLEEP_AFTER_MS;
+bool screenJustWoke = false;
 
 // Function to center-align and print text to the screen
 void CenterPrintToScreen(char const *str, u8g2_uint_t y)
@@ -62,6 +63,7 @@ MenuItem menuItems[9] = {
 void wakeScreen() {
     // Reset the sleep timer and update the display
     lastSignificantWeightChangeAt = millis();
+    screenJustWoke = true; // Indicate that the screen just woke up
     screen.clearBuffer();
     screen.sendBuffer();
 }
