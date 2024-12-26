@@ -8,3 +8,5 @@ void setupDisplay();
 void showCupWeightSetScreen(double cupWeight);
 void showInfoMenu();
 void wakeScreen();
+void showDebugModeStatus(bool debugMode);
+void showDebugMenu();

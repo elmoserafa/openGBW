@@ -46,10 +46,10 @@ void RightPrintToScreen(char const *str, u8g2_uint_t y)
 // Menu items for user interface
 int currentMenuItem = 0;      // Index of the current menu item
 int currentSetting;           // Index of the current setting being adjusted
-int menuItemsCount = 9;       // Total number of menu items
+int menuItemsCount = debugMode ? 10 : 9;       // Total number of menu items
 
  // Menu items for settings and calibration
-MenuItem menuItems[9] = {
+MenuItem menuItems[10] = {
     {0, false, "Cup weight", 1, &setCupWeight},
     {1, false, "Calibrate", 0},
     {2, false, "Offset", 0.1, &offset},
@@ -58,7 +58,54 @@ MenuItem menuItems[9] = {
     {5, false, "Info Menu", 0},
     {6, false, "Sleep Timer", 0},
     {7, false, "Exit", 0},
-    {8, false, "Reset", 0}};
+    {8, false, "Reset", 0},
+    // Debug menu placeholder (conditional)
+    {9, false, "Debug Menu", 0} // Visible only if debugMode is true
+};
+
+int debugMenuItemsCount = 3; // Number of items in the Debug Menu
+int currentDebugMenuItem = 0; // Current selection in the Debug Menu
+MenuItem debugMenuItems[3] = {
+    {0, false, "Sim Grind", 0},
+    {1, false, "Weight Hist", 0},
+    {2, false, "Zero Shot Count", 0}
+};
+
+void showDebugMenu()
+{
+    int prevIndex = (currentDebugMenuItem - 1) % debugMenuItemsCount;
+    int nextIndex = (currentDebugMenuItem + 1) % debugMenuItemsCount;
+
+    // Handle negative index wrap-around
+    prevIndex = prevIndex < 0 ? prevIndex + debugMenuItemsCount : prevIndex;
+
+    MenuItem prev = debugMenuItems[prevIndex];
+    MenuItem current = debugMenuItems[currentDebugMenuItem];
+    MenuItem next = debugMenuItems[nextIndex];
+
+    screen.clearBuffer();
+    screen.setFontPosTop();
+    screen.setFont(u8g2_font_7x14B_tf);
+
+    // Print "Debug Menu" as title
+    CenterPrintToScreen("Debug Menu", 0);
+
+    // Display the previous, current, and next items
+    LeftPrintToScreen(prev.menuName, 19);
+    LeftPrintActiveToScreen(current.menuName, 35);
+    LeftPrintToScreen(next.menuName, 51);
+
+    screen.sendBuffer();
+}
+
+
+void setupMenuItems() {
+    if (debugMode) {
+        menuItemsCount = 10; // Include Debug Menu
+    } else {
+        menuItemsCount = 9; // Exclude Debug Menu
+    }
+}
 
 void wakeScreen() {
     // Reset the sleep timer and update the display
@@ -265,6 +312,18 @@ void showInfoMenu() {
     // No unnecessary delays or clearing here
 }
 
+void showDebugModeStatus(bool debugMode)
+{
+    displayLock = true; // Lock the display while showing the message
+    screen.clearBuffer();
+    screen.setFont(u8g2_font_7x14B_tf);
+    CenterPrintToScreen(debugMode ? "Debug Mode Enabled" : "Debug Mode Disabled", 32);
+    screen.sendBuffer();
+    delay(2000); // Show the message for 2 seconds
+    displayLock = false; // Unlock the display
+}
+
+
 // Function to display the appropriate menu or setting based on the current state
 void showSetting()
 {
@@ -300,6 +359,37 @@ void showSetting()
   {
     showSleepTimerMenu();
   }
+  else if (currentSetting == 9) {
+    showDebugMenu();
+  }
+
+}
+
+void handleDebugMenuAction()
+{
+    switch (currentDebugMenuItem)
+    {
+    case 0: // Simulate Grinding
+        Serial.println("Simulating Grinding...");
+        scaleStatus = STATUS_GRINDING_IN_PROGRESS;
+        startedGrindingAt = millis();
+        setWeight = 20.0;     // Example weight
+        cupWeightEmpty = 5.0; // Example cup weight
+        break;
+
+    case 1: // Show Weight History
+        Serial.println("Displaying Weight History...");
+        // Add logic to display weight history
+        break;
+
+    case 2: // Reset Shot Count
+        Serial.println("Resetting Shot Count...");
+        shotCount = 0;
+        preferences.begin("scale", false);
+        preferences.putUInt("shotCount", shotCount);
+        preferences.end();
+        break;
+    }
 }
 
 // Task to update the display with the current state

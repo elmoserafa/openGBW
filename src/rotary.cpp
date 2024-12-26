@@ -13,6 +13,8 @@ AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(
 // Vars
 int encoderDir = 1;   // Direction of the rotary encoder
 int encoderValue = 0; // Current value of the rotary encoder
+static int clickCount = 0;
+const unsigned long clickThreshold = 500; // 500ms max interval for rapid clicks
 
 // Incase you can't set something you can exit
 void exitToMenu()
@@ -30,24 +32,51 @@ void exitToMenu()
     }
 }
 
+bool debugMode = DEBUG_MODE;
 // Handles button clicks on the rotary encoder
+
 void rotary_onButtonClick()
 {
+    unsigned long currentTime = millis();
     static unsigned long lastTimePressed = 0; // Timestamp of the last button press
-    if (millis() - lastTimePressed < 500)
+    static int clickCount = 0;                // Number of clicks
+
+    // Handle rapid clicks for debug mode
+    if (currentTime - lastTimePressed < clickThreshold)
     {
-        // Debounce multiple button presses
-        return;
+        clickCount++;
     }
+    else
+    {
+        clickCount = 1; // Reset click count if too much time has passed
+    }
+    lastTimePressed = currentTime;
+
+    // Check for 4 rapid clicks to toggle debug mode
+    if (clickCount >= 4)
+    {
+        debugMode = !debugMode; // Toggle debug mode
+        Serial.print("Debug Mode: ");
+        Serial.println(debugMode ? "Enabled" : "Disabled");
+
+        // Use the display method from display.cpp
+        showDebugModeStatus(debugMode);
+        menuItemsCount = debugMode ? 10 : 9;
+        clickCount = 0; // Reset the click count
+        return;         // Exit early to prevent other actions
+    }
+
     if (scaleStatus == STATUS_EMPTY)
     {
         // Enter the menu when the scale is empty
         scaleStatus = STATUS_IN_MENU;
         currentMenuItem = 0;
         rotaryEncoder.setAcceleration(0);
+        Serial.println("Entering Menu...");
     }
     else if (scaleStatus == STATUS_IN_MENU)
     {
+        // Navigate through the menu items
         switch (currentMenuItem)
         {
         case 0: // Cup Weight Menu
@@ -56,10 +85,12 @@ void rotary_onButtonClick()
             Serial.println("Cup Menu");
             break;
         case 1: // Calibration Menu
+        {
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 1;
             Serial.println("Calibration Menu");
             break;
+        }
         case 2: // Offset Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 2;
@@ -95,18 +126,25 @@ void rotary_onButtonClick()
             currentSetting = 6;
             Serial.println("Reset Menu");
             break;
+        case 9: // Debug Menu
+            if (debugMode)
+            {
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 9; // Identifier for Debug Menu
+                Serial.println("Entering Debug Menu");
+            }
+            break;
         }
     }
-
     else if (scaleStatus == STATUS_IN_SUBMENU)
     {
         // Handle submenu actions based on the current setting
         switch (currentSetting)
         {
-        case 0:
-        { // Cup Weight Menu
+        case 0: // Cup Weight Menu
+        {
             if (scaleWeight > 30)
-            { // Prevent accidental setting with no cup
+            { // Ensure cup weight is valid
                 setCupWeight = scaleWeight;
                 Serial.println(setCupWeight);
 
@@ -114,12 +152,10 @@ void rotary_onButtonClick()
                 preferences.putDouble("cup", setCupWeight);
                 preferences.end();
 
-                // Lock the display and show the confirmation
                 displayLock = true;
-                showCupWeightSetScreen(setCupWeight);
+                showCupWeightSetScreen(setCupWeight); // Show confirmation
                 displayLock = false;
 
-                // Return to the menu
                 exitToMenu();
             }
             else
@@ -129,11 +165,10 @@ void rotary_onButtonClick()
             }
             break;
         }
-        case 1: // calibration menu
+        case 1: // Calibration Menu
         {
-            preferences.begin("scale", false);
             double newCalibrationValue = preferences.getDouble("calibration", 1.0) * (scaleWeight / 100);
-            Serial.println(newCalibrationValue);
+            preferences.begin("scale", false);
             preferences.putDouble("calibration", newCalibrationValue);
             preferences.end();
             loadcell.set_scale(newCalibrationValue);
@@ -141,8 +176,8 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 2:
-        { // Offset Menu
+        case 2: // Offset Menu
+        {
             preferences.begin("scale", false);
             preferences.putDouble("offset", offset);
             preferences.end();
@@ -150,7 +185,7 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 3: // scale menu
+        case 3: // Scale Mode Menu
         {
             preferences.begin("scale", false);
             preferences.putBool("scaleMode", scaleMode);
@@ -159,7 +194,7 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 4: // grinding menu
+        case 4: // Grinding Mode Menu
         {
             preferences.begin("scale", false);
             preferences.putBool("grindMode", grindMode);
@@ -168,19 +203,16 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 5:
-        { // Info Menu
-            // Lock the display and show the Info Menu
+        case 5: // Info Menu
+        {
             displayLock = true;
-            showInfoMenu();
-            delay(3000); // Keep the Info Menu visible for 3 seconds
+            showInfoMenu(); // Display info menu
+            delay(3000);
             displayLock = false;
-
-            // After showing the info, return to the main menu
             exitToMenu();
             break;
         }
-        case 6: // reset
+        case 6: // Reset Menu
         {
             if (greset)
             {
@@ -207,10 +239,46 @@ void rotary_onButtonClick()
         case 8: // Sleep Timer Menu
         {
             preferences.begin("scale", false);
-            preferences.putInt("sleepTime", sleepTime); // Save sleep time
+            preferences.putInt("sleepTime", sleepTime);
             preferences.end();
             scaleStatus = STATUS_IN_MENU;
             currentSetting = -1;
+            break;
+        }
+        case 9: // Debug Menu
+        {
+            int newValue = rotaryEncoder.readEncoder();
+            int debugOption = (newValue - encoderValue) % 3;               // Cycle through options
+            debugOption = debugOption < 0 ? 3 + debugOption : debugOption; // Wrap negative values
+            encoderValue = newValue;
+
+            if (rotaryEncoder.isEncoderButtonClicked())
+            {
+                switch (debugOption)
+                {
+                case 0: // Simulate Grinding
+                    Serial.println("Simulating Grinding...");
+                    scaleStatus = STATUS_GRINDING_IN_PROGRESS;
+                    startedGrindingAt = millis();
+                    setWeight = 20.0;     // Example weight
+                    cupWeightEmpty = 5.0; // Example cup weight
+                    break;
+
+                case 1: // Show Weight History
+                    Serial.println("Displaying Weight History...");
+                    // Add logic to display weight history
+                    break;
+
+                case 2: // Reset Shot Count
+                    Serial.println("Resetting Shot Count...");
+                    shotCount = 0;
+                    preferences.begin("scale", false);
+                    preferences.putUInt("shotCount", shotCount);
+                    preferences.end();
+                    break;
+                }
+            }
+            exitToMenu();
             break;
         }
         }
@@ -289,6 +357,14 @@ void rotary_loop()
                 if (sleepTime > 600000)
                     sleepTime = 600000; // Maximum sleep time: 10 minutes
                 encoderValue = newValue;
+            }
+            else if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
+            {
+                int newValue = rotaryEncoder.readEncoder();
+                currentDebugMenuItem = (currentDebugMenuItem + (newValue - encoderValue) * -encoderDir) % debugMenuItemsCount;
+                currentDebugMenuItem = currentDebugMenuItem < 0 ? debugMenuItemsCount + currentDebugMenuItem : currentDebugMenuItem;
+                encoderValue = newValue;
+                showDebugMenu(); // Update the Debug Menu display
             }
             break;
         }
