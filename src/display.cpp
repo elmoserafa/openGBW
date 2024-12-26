@@ -1,4 +1,5 @@
 #include "config.hpp"
+#include "rotary.hpp"
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C screen(U8G2_R0);
 TaskHandle_t DisplayTask;
@@ -371,26 +372,54 @@ void handleDebugMenuAction()
     {
     case 0: // Simulate Grinding
         Serial.println("Simulating Grinding...");
-        scaleStatus = STATUS_GRINDING_IN_PROGRESS;
+        scaleStatus = STATUS_GRINDING_IN_PROGRESS; // Temporarily change the state for grinding simulation
         startedGrindingAt = millis();
         setWeight = 20.0;     // Example weight
         cupWeightEmpty = 5.0; // Example cup weight
+        delay(5000);          // Simulate grinding for 5 seconds
+        scaleStatus = STATUS_IN_SUBMENU; // Return to Debug Menu state
+        currentSetting = 9;
+        exitToMenu();
         break;
 
     case 1: // Show Weight History
         Serial.println("Displaying Weight History...");
         // Add logic to display weight history
+        // Keep in the Debug Menu
+        scaleStatus = STATUS_IN_SUBMENU;
+        currentSetting = 9;
+        exitToMenu();
         break;
 
     case 2: // Reset Shot Count
-        Serial.println("Resetting Shot Count...");
-        shotCount = 0;
-        preferences.begin("scale", false);
-        preferences.putUInt("shotCount", shotCount);
-        preferences.end();
-        break;
+      Serial.println("Resetting Shot Count...");
+      shotCount = 0;
+      preferences.begin("scale", false);
+      preferences.putUInt("shotCount", shotCount);
+      preferences.end();
+      // Show confirmation message
+      displayLock = true;
+      screen.clearBuffer();
+      screen.setFont(u8g2_font_7x14B_tf);
+      CenterPrintToScreen("Shot Count Reset", 32);
+      screen.sendBuffer();
+      delay(2000);
+      displayLock = false;
+
+      // Stay in the Debug Menu
+      scaleStatus = STATUS_IN_SUBMENU;
+      currentSetting = 9;
+      exitToMenu();
+      break;
+
+    case 3: // Exit Debug Menu
+      Serial.println("Exiting Debug Menu...");
+      exitToMenu(); // Return to Main Menu
+      break;
     }
+    showDebugMenu(); // Update the Debug Menu display after action
 }
+
 
 // Task to update the display with the current state
 void updateDisplay(void *parameter)

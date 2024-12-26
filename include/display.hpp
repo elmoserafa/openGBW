@@ -10,3 +10,4 @@ void showInfoMenu();
 void wakeScreen();
 void showDebugModeStatus(bool debugMode);
 void showDebugMenu();
+void handleDebugMenuAction();

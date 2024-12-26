@@ -372,7 +372,14 @@ void rotary_loop()
     }
     if (rotaryEncoder.isEncoderButtonClicked())
     {
-        rotary_onButtonClick();
+        if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
+        {
+            handleDebugMenuAction(); // Perform the selected debug menu action
+        }
+        else
+        {
+            rotary_onButtonClick(); // Existing button click handling
+        }
     }
 }
 
