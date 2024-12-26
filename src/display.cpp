@@ -254,8 +254,8 @@ void showInfoMenu() {
     snprintf(buf, sizeof(buf), "Offset: %3.2fg", offset);
     LeftPrintToScreen(buf, 32);
 
-    // Display software version
-    snprintf(buf, sizeof(buf), "Version: 1.0.0");
+    // Display shot count
+    snprintf(buf, sizeof(buf), "Shot Count: %u", shotCount);
     LeftPrintToScreen(buf, 48);
 
     // Send buffer to the display

@@ -10,6 +10,7 @@ double offset = 0;            // Offset for stopping grinding prior to reaching 
 bool scaleMode = false;       // Indicates if the scale is used in timer mode
 bool grindMode = false;       // Grinder mode: impulse (false) or continuous (true)
 bool grinderActive = false;   // Grinder state (on/off)
+unsigned int shotCount;  
 
 // Buffer for storing recent weight history
 MathBuffer<double, 100> weightHistory;
@@ -145,8 +146,10 @@ void scaleStatusLoop(void *p) {
                     if (ABS(offset) >= setWeight) {
                         offset = COFFEE_DOSE_OFFSET;
                     }
+                    shotCount++;
                     preferences.begin("scale", false);
                     preferences.putDouble("offset", offset);
+                    preferences.putUInt("shotCount", shotCount);
                     preferences.end();
                     newOffset = false;
                 }
@@ -183,6 +186,7 @@ void setupScale() {
     setCupWeight = preferences.getDouble("cup", (double)CUP_WEIGHT);
     scaleMode = preferences.getBool("scaleMode", false);
     grindMode = preferences.getBool("grindMode", false);
+    shotCount = preferences.getUInt("shotCount", 0);
     preferences.end();
 
     loadcell.set_scale(scaleFactor);

@@ -196,6 +196,7 @@ void rotary_onButtonClick()
                 preferences.putBool("scaleMode", false);
                 grindMode = false;
                 preferences.putBool("grindMode", false);
+                preferences.putUInt("shotCount", 0);
                 loadcell.set_scale((double)LOADCELL_SCALE_FACTOR);
                 preferences.end();
             }

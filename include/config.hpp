@@ -87,3 +87,4 @@ extern int currentMenuItem;
 extern int currentSetting;
 extern int sleepTime;
 extern bool screenJustWoke;
+extern unsigned int shotCount;
