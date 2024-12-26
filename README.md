@@ -1,3 +1,10 @@
+# Differences to jb-xyz's openGBW:
+ Extends https://github.com/jb-xyz/openGBW
+
+ - Commented the code and added some more structure to it all
+ - Cup weight now has an escape to it as well as a confirmation screen to subvert the escape
+ - Info menu to see offset and cup weight
+
 # OpenGBW
 
 This Project extends and adapts the original by Guillaume Besson
