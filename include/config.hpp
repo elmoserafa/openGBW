@@ -28,7 +28,7 @@ class MenuItem
 };
 
 //Set your sleep variable
-#define SLEEP_AFTER_MS 60 * 1000
+#define SLEEP_AFTER_MS 60000
 
 //Main Variables and Pins
 #define STATUS_EMPTY 0

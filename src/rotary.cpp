@@ -46,20 +46,10 @@ void rotary_onButtonClick()
         currentMenuItem = 0;
         rotaryEncoder.setAcceleration(0);
     }
-    else if (scaleStatus == STATUS_IN_MENU)
+        else if (scaleStatus == STATUS_IN_MENU)
     {
         switch (currentMenuItem)
         {
-        case 6: // Exit
-            scaleStatus = STATUS_EMPTY;
-            rotaryEncoder.setAcceleration(100);
-            Serial.println("Exited Menu");
-            break;
-        case 2: // Offset Menu
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 2;
-            Serial.println("Offset Menu");
-            break;
         case 0: // Cup Weight Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 0;
@@ -69,6 +59,11 @@ void rotary_onButtonClick()
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 1;
             Serial.println("Calibration Menu");
+            break;
+        case 2: // Offset Menu
+            scaleStatus = STATUS_IN_SUBMENU;
+            currentSetting = 2;
+            Serial.println("Offset Menu");
             break;
         case 3: // Scale Mode Menu
             scaleStatus = STATUS_IN_SUBMENU;
@@ -83,13 +78,21 @@ void rotary_onButtonClick()
         case 5: // Info Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 5;
-            greset = false;
             Serial.println("Info Menu");
             break;
-        case 7: // Reset Menu
+        case 6: // Sleep Timer Menu
+            scaleStatus = STATUS_IN_SUBMENU;
+            currentSetting = 8;
+            Serial.println("Sleep Timer Menu");
+            break;
+        case 7: // Exit
+            scaleStatus = STATUS_EMPTY;
+            rotaryEncoder.setAcceleration(100);
+            Serial.println("Exited Menu");
+            break;
+        case 8: // Reset Menu
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 6;
-            greset = true;
             Serial.println("Reset Menu");
             break;
         }
@@ -100,15 +103,6 @@ void rotary_onButtonClick()
         // Handle submenu actions based on the current setting
         switch (currentSetting)
         {
-        case 2:
-        { // Offset Menu
-            preferences.begin("scale", false);
-            preferences.putDouble("offset", offset);
-            preferences.end();
-            scaleStatus = STATUS_IN_MENU;
-            currentSetting = -1;
-            break;
-        }
         case 0:
         { // Cup Weight Menu
             if (scaleWeight > 30)
@@ -135,7 +129,7 @@ void rotary_onButtonClick()
             }
             break;
         }
-        case 1: //calibration menu
+        case 1: // calibration menu
         {
             preferences.begin("scale", false);
             double newCalibrationValue = preferences.getDouble("calibration", 1.0) * (scaleWeight / 100);
@@ -147,7 +141,16 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 3: //scale menu
+        case 2:
+        { // Offset Menu
+            preferences.begin("scale", false);
+            preferences.putDouble("offset", offset);
+            preferences.end();
+            scaleStatus = STATUS_IN_MENU;
+            currentSetting = -1;
+            break;
+        }
+        case 3: // scale menu
         {
             preferences.begin("scale", false);
             preferences.putBool("scaleMode", scaleMode);
@@ -156,7 +159,7 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 4: //grinding menu
+        case 4: // grinding menu
         {
             preferences.begin("scale", false);
             preferences.putBool("grindMode", grindMode);
@@ -165,7 +168,19 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 6: //reset
+        case 5:
+        { // Info Menu
+            // Lock the display and show the Info Menu
+            displayLock = true;
+            showInfoMenu();
+            delay(3000); // Keep the Info Menu visible for 3 seconds
+            displayLock = false;
+
+            // After showing the info, return to the main menu
+            exitToMenu();
+            break;
+        }
+        case 6: // reset
         {
             if (greset)
             {
@@ -188,16 +203,13 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 5: 
-        { // Info Menu
-            // Lock the display and show the Info Menu
-            displayLock = true;
-            showInfoMenu();
-            delay(3000); // Keep the Info Menu visible for 3 seconds
-            displayLock = false;
-
-            // After showing the info, return to the main menu
-            exitToMenu();
+        case 8: // Sleep Timer Menu
+        {
+            preferences.begin("scale", false);
+            preferences.putInt("sleepTime", sleepTime); // Save sleep time
+            preferences.end();
+            scaleStatus = STATUS_IN_MENU;
+            currentSetting = -1;
             break;
         }
         }
@@ -261,6 +273,15 @@ void rotary_loop()
             else if (currentSetting == 6)
             {
                 greset = !greset;
+            }
+            else if (currentSetting == 8)
+            {                                                  // Sleep Timer menu
+                sleepTime += (newValue - encoderValue) * 1000; // Adjust by seconds
+                if (sleepTime < 5000)
+                    sleepTime = 5000; // Minimum sleep time: 5 seconds
+                if (sleepTime > 600000)
+                    sleepTime = 600000; // Maximum sleep time: 10 minutes
+                encoderValue = newValue;
             }
             break;
         }

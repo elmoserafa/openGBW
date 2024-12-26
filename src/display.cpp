@@ -45,18 +45,19 @@ void RightPrintToScreen(char const *str, u8g2_uint_t y)
 // Menu items for user interface
 int currentMenuItem = 0;      // Index of the current menu item
 int currentSetting;           // Index of the current setting being adjusted
-int menuItemsCount = 8;       // Total number of menu items
+int menuItemsCount = 9;       // Total number of menu items
 
  // Menu items for settings and calibration
-MenuItem menuItems[8] = {
+MenuItem menuItems[9] = {
     {0, false, "Cup weight", 1, &setCupWeight},
     {1, false, "Calibrate", 0},
     {2, false, "Offset", 0.1, &offset},
     {3, false, "Scale Mode", 0},
     {4, false, "Grinding Mode", 0},
     {5, false, "Info Menu", 0},
-    {6, false, "Exit", 0},
-    {7, false, "Reset", 0}};
+    {6, false, "Sleep Timer", 0},
+    {7, false, "Exit", 0},
+    {8, false, "Reset", 0}};
 
 void wakeScreen() {
     // Reset the sleep timer and update the display
@@ -88,6 +89,25 @@ void showMenu()
   LeftPrintToScreen(next.menuName, 51);          // Print the next menu item
 
   screen.sendBuffer(); // Send the buffer to the display
+}
+
+void showSleepTimerMenu() {
+    char buf[32];
+    screen.clearBuffer();
+    screen.setFontPosTop();
+    screen.setFont(u8g2_font_7x14B_tf);
+
+    // Display title
+    CenterPrintToScreen("Adjust Sleep Timer", 0);
+
+    // Display current sleep timer value in seconds
+    screen.setFont(u8g2_font_7x13_tr);
+    snprintf(buf, sizeof(buf), "Timer: %d sec", sleepTime / 1000); // Use `sleepTime` here
+    CenterPrintToScreen(buf, 32);
+
+    // Display instructions
+    LeftPrintToScreen("Turn to adjust", 50);
+    screen.sendBuffer();
 }
 
 // Function to display the offset adjustment menu
@@ -245,17 +265,17 @@ void showInfoMenu() {
 // Function to display the appropriate menu or setting based on the current state
 void showSetting()
 {
-  if (currentSetting == 2)
-  {
-    showOffsetMenu();
-  }
-  else if (currentSetting == 0)
+  if (currentSetting == 0)
   {
     showCupMenu();
   }
   else if (currentSetting == 1)
   {
     showCalibrationMenu();
+  }
+  else if (currentSetting == 2)
+  {
+    showOffsetMenu();
   }
   else if (currentSetting == 3)
   {
@@ -272,6 +292,10 @@ void showSetting()
   else if (currentSetting == 7)
   {
     showInfoMenu();
+  }
+  else if (currentSetting == 8)
+  {
+    showSleepTimerMenu();
   }
 }
 
