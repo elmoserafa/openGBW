@@ -4,6 +4,8 @@
  - Commented the code and added some more structure to it all
  - Cup weight now has an escape to it as well as a confirmation screen to subvert the escape
  - Info menu to see offset and cup weight
+ - Wake on rotary turn
+ - Sleep adjustable via menus instead of code compile
 
 # OpenGBW
 
