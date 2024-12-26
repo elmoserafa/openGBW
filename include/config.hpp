@@ -61,6 +61,7 @@ class MenuItem
 #define ROTARY_ENCODER_STEPS 4
 
 // External User Variables
+extern volatile bool displayLock; // Add this declaration
 extern double scaleWeight;
 extern unsigned long scaleLastUpdatedAt;
 extern unsigned long lastSignificantWeightChangeAt;

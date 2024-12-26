@@ -15,6 +15,7 @@ SimpleKalmanFilter kalmanFilter(0.02, 0.02, 0.01); // Kalman filter for weight s
 TaskHandle_t ScaleTask = nullptr;    // Initialize task handles to nullptr
 TaskHandle_t ScaleStatusTask = nullptr;
 
+volatile bool displayLock = false; 
 /*
 Main runner for Screen setup and work
 */

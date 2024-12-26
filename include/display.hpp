@@ -5,3 +5,4 @@
 #include <U8g2lib.h>
 
 void setupDisplay();
+void showCupWeightSetScreen(double cupWeight);
