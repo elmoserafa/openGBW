@@ -209,6 +209,12 @@ void rotary_loop()
 {
     if (rotaryEncoder.encoderChanged())
     {
+        // Wake the screen if it's asleep
+        if (millis() - lastSignificantWeightChangeAt > sleepTime)
+        {
+            Serial.println("Screen waking due to rotary movement...");
+            wakeScreen();
+        }
         switch (scaleStatus)
         {
         case STATUS_EMPTY:

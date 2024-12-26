@@ -4,7 +4,7 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C screen(U8G2_R0);
 TaskHandle_t DisplayTask;
 
 // Time in milliseconds after which the display sleeps (10 seconds)
-#define SLEEP_AFTER_MS 60 * 30000
+int sleepTime = SLEEP_AFTER_MS;
 
 // Function to center-align and print text to the screen
 void CenterPrintToScreen(char const *str, u8g2_uint_t y)
@@ -57,6 +57,13 @@ MenuItem menuItems[8] = {
     {5, false, "Info Menu", 0},
     {6, false, "Exit", 0},
     {7, false, "Reset", 0}};
+
+void wakeScreen() {
+    // Reset the sleep timer and update the display
+    lastSignificantWeightChangeAt = millis();
+    screen.clearBuffer();
+    screen.sendBuffer();
+}
 
 // Function to display the menu with previous, current, and next items
 void showMenu()
