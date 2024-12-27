@@ -318,7 +318,7 @@ void showDebugModeStatus(bool debugMode)
     displayLock = true; // Lock the display while showing the message
     screen.clearBuffer();
     screen.setFont(u8g2_font_7x14B_tf);
-    CenterPrintToScreen(debugMode ? "Debug Mode Enabled" : "Debug Mode Disabled", 32);
+    CenterPrintToScreen(debugMode ? "Debug Mode On" : "Debug Mode Off", 32);
     screen.sendBuffer();
     delay(2000); // Show the message for 2 seconds
     displayLock = false; // Unlock the display

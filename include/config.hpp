@@ -27,7 +27,7 @@ class MenuItem
         double *value;
 };
 // Debug mode toggle
-#define DEBUG_MODE true;
+#define DEBUG_MODE false;
 extern bool debugMode;
 
 //Set your sleep variable

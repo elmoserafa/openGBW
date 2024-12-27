@@ -368,6 +368,13 @@ void rotary_loop()
             }
             break;
         }
+        case STATUS_GRINDING_FAILED:
+        {
+            Serial.println("Exiting Grinding Failed state to Main Menu...");
+            scaleStatus = STATUS_IN_MENU;
+            currentMenuItem = 0; // Reset to the main menu
+            return; // Exit early to avoid further processing
+        }
         }
     }
     if (rotaryEncoder.isEncoderButtonClicked())
