@@ -1,5 +1,6 @@
 #include "config.hpp"
 #include "rotary.hpp"
+#include "web_server.hpp"
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C screen(U8G2_R0);
 TaskHandle_t DisplayTask;
@@ -294,13 +295,9 @@ void showInfoMenu() {
     // Display title
     CenterPrintToScreen("System Info", 0);
 
-    // Display cup weight
-    screen.setFont(u8g2_font_7x13_tr);
-    snprintf(buf, sizeof(buf), "Cup Weight: %3.1fg", setCupWeight);
-    LeftPrintToScreen(buf, 16);
-
     // Display offset
-    snprintf(buf, sizeof(buf), "Offset: %3.2fg", offset);
+    IPAddress ip = WiFi.localIP();
+    snprintf(buf, sizeof(buf), "IP: %d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
     LeftPrintToScreen(buf, 32);
 
     // Display shot count
@@ -553,7 +550,8 @@ void updateDisplay(void *parameter)
       else if (scaleStatus == STATUS_INFO_MENU)
       {
         showInfoMenu(); // Continuously display the Info Menu while in this state
-        delay(100);     // Add a small delay to avoid rapid screen updates
+        delay(1000);     // Add a small delay to avoid rapid screen updates
+        exitToMenu();
         continue;       // Skip the rest of the update logic
       }
     }
