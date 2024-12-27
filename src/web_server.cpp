@@ -5,8 +5,8 @@
 #include "api_handler.hpp"
 
 // Wi-Fi credentials
-const char *ssid = "mujjuanna";
-const char *password = "Bismillah9200@mujju@nn@";
+const char *ssid = "ssid";
+const char *password = "pass";
 
 // Web server instance
 AsyncWebServer server(80);
