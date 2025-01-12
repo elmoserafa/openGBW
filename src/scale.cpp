@@ -10,7 +10,7 @@ double offset = 0;            // Offset for stopping grinding prior to reaching 
 bool scaleMode = false;       // Indicates if the scale is used in timer mode
 bool grindMode = false;       // Grinder mode: impulse (false) or continuous (true)
 bool grinderActive = false;   // Grinder state (on/off)
-unsigned int shotCount;  
+unsigned int shotCount;
 
 // Buffer for storing recent weight history
 MathBuffer<double, 100> weightHistory;
@@ -27,11 +27,14 @@ unsigned long finishedGrindingAt = 0; // Timestamp of when grinding finished
 bool greset = false;          // Flag for reset operation
 bool newOffset = false;       // Indicates if a new offset value is pending
 
-// Tares the scale (sets the current weight to zero)
-void tareScale() {
-    Serial.println("Taring scale");
-    loadcell.tare(TARE_MEASURES);
-    lastTareAt = millis();
+void tareScale()
+{
+    Serial.println("Taring scale...");
+    loadcell.tare(TARE_MEASURES); // Perform the tare operation
+    delay(500);                   // Allow the load cell to stabilize
+    lastTareAt = millis();        // Update the timestamp
+    scaleWeight = 0;              // Reset the displayed weight
+    Serial.println("Scale tared successfully");
 }
 
 // Task to continuously update the scale readings
@@ -47,6 +50,10 @@ void updateScale(void *parameter) {
         if (loadcell.wait_ready_timeout(300)) {
             lastEstimate = kalmanFilter.updateEstimate(loadcell.get_units(5));
             scaleWeight = lastEstimate;
+            if (ABS(scaleWeight) < 5)
+            {
+                scaleWeight = 0;
+            }
             scaleLastUpdatedAt = millis();
             weightHistory.push(scaleWeight);
             scaleReady = true;
@@ -81,87 +88,125 @@ void scaleStatusLoop(void *p) {
 
         switch (scaleStatus) {
             case STATUS_EMPTY: {
-                if (millis() - lastTareAt > TARE_MIN_INTERVAL && ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
-                    lastTareAt = 0; // Retare if conditions are met
-                }
-                if (ABS(weightHistory.minSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE &&
+            if (millis() - lastTareAt > TARE_MIN_INTERVAL && ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
+                lastTareAt = 0; // Retare if conditions are met
+            }
+            if (ABS(weightHistory.minSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE &&
                     ABS(weightHistory.maxSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE) {
-                    cupWeightEmpty = weightHistory.averageSince((int64_t)millis() - 500);
-                    scaleStatus = STATUS_GRINDING_IN_PROGRESS;
+                cupWeightEmpty = weightHistory.averageSince((int64_t)millis() - 500);
+                scaleStatus = STATUS_GRINDING_IN_PROGRESS;
                     if (!scaleMode) {
-                        newOffset = true;
-                        startedGrindingAt = millis();
-                    }
-                    grinderToggle();
-                    continue;
-                }
-                break;
-            }
-            case STATUS_GRINDING_IN_PROGRESS: {
-                if (!scaleReady) {
-                    grinderToggle();
-                    scaleStatus = STATUS_GRINDING_FAILED;
-                }
-                if (scaleMode && startedGrindingAt == 0 && scaleWeight - cupWeightEmpty >= 0.1) {
+                    newOffset = true;
                     startedGrindingAt = millis();
-                    continue;
                 }
+                grinderToggle();
+                continue;
+            }
+            break;
+        }
+        case STATUS_GRINDING_IN_PROGRESS:
+        {
+            if (scaleWeight <= 0)
+            { // Avoid restarting grinding with zero or negative weight
+                Serial.println("Negative or zero weight detected. Skipping grinding.");
+                grinderToggle(); // Ensure grinder is off
+                scaleStatus = STATUS_GRINDING_FAILED;
+                continue;
+            }
+            if (!scaleReady)
+            {
+                grinderToggle();
+                scaleStatus = STATUS_GRINDING_FAILED;
+            }
+                if (scaleMode && startedGrindingAt == 0 && scaleWeight - cupWeightEmpty >= 0.1) {
+                startedGrindingAt = millis();
+                continue;
+            }
                 if (millis() - startedGrindingAt > MAX_GRINDING_TIME && !scaleMode) {
-                    grinderToggle();
-                    scaleStatus = STATUS_GRINDING_FAILED;
-                    continue;
-                }
-                if (millis() - startedGrindingAt > 2000 &&
-                    scaleWeight - weightHistory.firstValueOlderThan(millis() - 2000) < 1 &&
+                grinderToggle();
+                scaleStatus = STATUS_GRINDING_FAILED;
+                continue;
+            }
+            if (millis() - startedGrindingAt > 2000 &&
+                scaleWeight - weightHistory.firstValueOlderThan(millis() - 2000) < 1 &&
                     !scaleMode) {
-                    grinderToggle();
-                    scaleStatus = STATUS_GRINDING_FAILED;
-                    continue;
-                }
+                grinderToggle();
+                scaleStatus = STATUS_GRINDING_FAILED;
+                continue;
+            }
                 if (weightHistory.minSince((int64_t)millis() - 200) < cupWeightEmpty - CUP_DETECTION_TOLERANCE && !scaleMode) {
-                    grinderToggle();
-                    scaleStatus = STATUS_GRINDING_FAILED;
-                    continue;
-                }
-                double currentOffset = offset;
+                grinderToggle();
+                scaleStatus = STATUS_GRINDING_FAILED;
+                continue;
+            }
+            double currentOffset = offset;
                 if (scaleMode) {
-                    currentOffset = 0;
-                }
+                currentOffset = 0;
+            }
                 if (weightHistory.maxSince((int64_t)millis() - 200) >= cupWeightEmpty + setWeight + currentOffset) {
-                    finishedGrindingAt = millis();
-                    grinderToggle();
-                    scaleStatus = STATUS_GRINDING_FINISHED;
-                    continue;
-                }
-                break;
+                finishedGrindingAt = millis();
+                grinderToggle();
+                scaleStatus = STATUS_GRINDING_FINISHED;
+                continue;
             }
-            case STATUS_GRINDING_FINISHED: {
-                double currentWeight = weightHistory.averageSince((int64_t)millis() - 500);
+            break;
+        }
+        case STATUS_GRINDING_FINISHED:
+        {
+            static unsigned long grindingFinishedAt = 0;
+
+            // Record the time when grinding finished if not already recorded
+            if (grindingFinishedAt == 0)
+            {
+                grindingFinishedAt = millis();
+            }
+
+            double currentWeight = weightHistory.averageSince((int64_t)millis() - 500);
                 if (scaleWeight < 5) {
-                    startedGrindingAt = 0;
-                    scaleStatus = STATUS_EMPTY;
-                    continue;
+                startedGrindingAt = 0;
+                grindingFinishedAt = 0; // Reset the timestamp
+                scaleWeight = 0;
+                scaleStatus = STATUS_EMPTY;
+                continue;
                 } else if (currentWeight != setWeight + cupWeightEmpty && millis() - finishedGrindingAt > 1500 && newOffset) {
-                    offset += setWeight + cupWeightEmpty - currentWeight;
+                offset += setWeight + cupWeightEmpty - currentWeight;
                     if (ABS(offset) >= setWeight) {
-                        offset = COFFEE_DOSE_OFFSET;
-                    }
-                    shotCount++;
-                    preferences.begin("scale", false);
-                    preferences.putDouble("offset", offset);
-                    preferences.putUInt("shotCount", shotCount);
-                    preferences.end();
-                    newOffset = false;
+                    offset = COFFEE_DOSE_OFFSET;
                 }
-                break;
+                shotCount++;
+                preferences.begin("scale", false);
+                preferences.putDouble("offset", offset);
+                preferences.putUInt("shotCount", shotCount);
+                preferences.end();
+                newOffset = false;
             }
-            case STATUS_GRINDING_FAILED: {
-                if (scaleWeight >= GRINDING_FAILED_WEIGHT_TO_RESET) {
+
+            // Timeout to transition back to the main menu after grinding finishes
+            if (millis() - grindingFinishedAt > 5000)
+            { // 5-second delay after grinding finishes
+                if (scaleWeight >= 5)
+                { // If weight is still on the scale, wait for cup removal
+                    Serial.println("Waiting for cup to be removed...");
+                }
+                else
+                {
+                    startedGrindingAt = 0;
+                    grindingFinishedAt = 0; // Reset the timestamp
                     scaleStatus = STATUS_EMPTY;
-                    continue;
+                    Serial.println("Grinding finished. Transitioning to main menu.");
                 }
-                break;
             }
+            break;
+        }
+        case STATUS_GRINDING_FAILED:
+        {
+            if (scaleWeight >= GRINDING_FAILED_WEIGHT_TO_RESET)
+            {
+                scaleStatus = STATUS_EMPTY;
+                continue;
+            }
+            break;
+        }
         }
         rotary_loop();
         delay(50);

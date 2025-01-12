@@ -58,7 +58,7 @@ MenuItem menuItems[10] = {
     {3, false, "Scale Mode", 0},
     {4, false, "Grinding Mode", 0},
     {5, false, "Info Menu", 0},
-    {6, false, "Sleep Timer", 0},
+    {6, false, "DEPRECATED", 0},
     {7, false, "Exit", 0},
     {8, false, "Reset", 0},
     // Debug menu placeholder (conditional)
@@ -496,7 +496,7 @@ void updateDisplay(void *parameter)
         screen.setFont(u8g2_font_7x13_tf);
         screen.setFontPosCenter();
         screen.setCursor(5, 50);
-        snprintf(buf2, sizeof(buf2), "Set: %3.1fg", setWeight);
+        snprintf(buf2, sizeof(buf2), "Set: %3.1fg", abs(setWeight));
         LeftPrintToScreen(buf2, 50);
       }
       else if (scaleStatus == STATUS_GRINDING_FAILED)
