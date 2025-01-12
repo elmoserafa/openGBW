@@ -507,8 +507,8 @@ void updateDisplay(void *parameter)
 
         screen.setFontPosTop();
         screen.setFont(u8g2_font_7x13_tr);
-        CenterPrintToScreen("Press the balance", 32);
-        CenterPrintToScreen("to reset", 42);
+        CenterPrintToScreen("Rotate dial", 32);
+        CenterPrintToScreen("to exit", 42);
       }
       else if (scaleStatus == STATUS_GRINDING_FINISHED)
       {
