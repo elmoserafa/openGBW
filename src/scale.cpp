@@ -232,6 +232,7 @@ void setupScale() {
     scaleMode = preferences.getBool("scaleMode", false);
     grindMode = preferences.getBool("grindMode", false);
     shotCount = preferences.getUInt("shotCount", 0);
+    sleepTime = preferences.getInt("sleepTime", SLEEP_AFTER_MS); // Default to SLEEP_AFTER_MS if not set
     preferences.end();
 
     loadcell.set_scale(scaleFactor);

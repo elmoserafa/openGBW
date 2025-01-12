@@ -441,10 +441,22 @@ void rotary_loop()
                 greset = !greset;
             }
             else if (currentSetting == 8)
-            {                // Sleep Timer menu
-                tareScale(); // Call the tare function from scale.cpp
-                Serial.println("Scale tared successfully");
-                exitToMenu(); // Exit the submenu after taring
+            {                                                  // Sleep Timer menu
+                sleepTime += (newValue - encoderValue) * 1000; // Adjust by seconds
+                if (sleepTime < 5000)
+                {
+                    sleepTime = 5000; // Minimum sleep time: 5 seconds
+                }
+                if (sleepTime > 600000)
+                {
+                    sleepTime = 600000; // Maximum sleep time: 10 minutes
+                }
+                encoderValue = newValue;
+
+                // Save the updated sleep time to preferences
+                preferences.begin("scale", false);
+                preferences.putInt("sleepTime", sleepTime);
+                preferences.end();
             }
             else if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
             {

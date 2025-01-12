@@ -58,7 +58,7 @@ MenuItem menuItems[10] = {
     {3, false, "Scale Mode", 0},
     {4, false, "Grinding Mode", 0},
     {5, false, "Info Menu", 0},
-    {6, false, "DEPRECATED", 0},
+    {6, false, "Sleep", 0},
     {7, false, "Exit", 0},
     {8, false, "Reset", 0},
     // Debug menu placeholder (conditional)
@@ -154,7 +154,7 @@ void showSleepTimerMenu() {
 
     // Display current sleep timer value in seconds
     screen.setFont(u8g2_font_7x13_tr);
-    snprintf(buf, sizeof(buf), "Timer: %d sec", sleepTime / 1000); // Use `sleepTime` here
+    snprintf(buf, sizeof(buf), "Timer: %d sec", sleepTime / 1000); // Use `sleepTime` variable
     CenterPrintToScreen(buf, 32);
 
     // Display instructions
@@ -434,7 +434,7 @@ void updateDisplay(void *parameter)
 
     screen.clearBuffer(); // Clear the display buffer
     screen.clearBuffer(); // Clear the display buffer
-    if (millis() - lastSignificantWeightChangeAt > SLEEP_AFTER_MS)
+    if (millis() - lastSignificantWeightChangeAt > sleepTime)
     {
       screen.sendBuffer(); // Send the buffer to the display to "sleep"
       delay(100);
