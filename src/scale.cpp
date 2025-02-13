@@ -50,7 +50,7 @@ void updateScale(void *parameter) {
         if (loadcell.wait_ready_timeout(300)) {
             lastEstimate = kalmanFilter.updateEstimate(loadcell.get_units(5));
             scaleWeight = lastEstimate;
-            if (ABS(scaleWeight) < 5)
+            if (ABS(scaleWeight) < 3)
             {
                 scaleWeight = 0;
             }
@@ -70,10 +70,14 @@ void grinderToggle() {
         if (grindMode) {
             grinderActive = !grinderActive;
             digitalWrite(GRINDER_ACTIVE_PIN, grinderActive);
+            Serial.print("Grinder toggled: ");
+            Serial.println(grinderActive ? "ON" : "OFF");
         } else {
+            Serial.println("Grinder ON (Impulse Mode)");
             digitalWrite(GRINDER_ACTIVE_PIN, 1);
             delay(100);
             digitalWrite(GRINDER_ACTIVE_PIN, 0);
+            Serial.println("Grinder OFF");
         }
     }
 }
@@ -159,6 +163,9 @@ void scaleStatusLoop(void *p) {
             if (grindingFinishedAt == 0)
             {
                 grindingFinishedAt = millis();
+                Serial.print("Grinder was on for: ");
+                Serial.print(grindingFinishedAt);
+                Serial.println(" seconds");
             }
 
             double currentWeight = weightHistory.averageSince((int64_t)millis() - 500);
@@ -184,7 +191,7 @@ void scaleStatusLoop(void *p) {
             // Timeout to transition back to the main menu after grinding finishes
             if (millis() - grindingFinishedAt > 5000)
             { // 5-second delay after grinding finishes
-                if (scaleWeight >= 5)
+                if (scaleWeight >= 3)
                 { // If weight is still on the scale, wait for cup removal
                     Serial.println("Waiting for cup to be removed...");
                 }
