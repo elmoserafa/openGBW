@@ -45,8 +45,8 @@ extern bool debugMode;
 #define CUP_WEIGHT 70
 #define CUP_DETECTION_TOLERANCE 5 // 5 grams tolerance above or bellow cup weight to detect it
 
-#define LOADCELL_DOUT_PIN 19
-#define LOADCELL_SCK_PIN 18
+#define LOADCELL_DOUT_PIN 3//19 - on esp32dev
+#define LOADCELL_SCK_PIN 2//18 - on esp32dev
 
 #define LOADCELL_SCALE_FACTOR 7351
 
@@ -57,15 +57,19 @@ extern bool debugMode;
 #define MAX_GRINDING_TIME 20000 // 20 seconds diff
 #define GRINDING_FAILED_WEIGHT_TO_RESET 150 // force on balance need to be measured to reset grinding
 
-#define GRINDER_ACTIVE_PIN 33
+#define GRINDER_ACTIVE_PIN 4// 33 - on esp32dev
 
 #define TARE_MIN_INTERVAL 10 * 1000 // auto-tare at most once every 10 seconds
 
-#define ROTARY_ENCODER_A_PIN 32
-#define ROTARY_ENCODER_B_PIN 23
-#define ROTARY_ENCODER_BUTTON_PIN 34
+#define ROTARY_ENCODER_A_PIN 8//32 - on esp32dev
+#define ROTARY_ENCODER_B_PIN 9//23 - on esp32dev
+#define ROTARY_ENCODER_BUTTON_PIN 10//34 - on esp32dev
 #define ROTARY_ENCODER_VCC_PIN -1
 #define ROTARY_ENCODER_STEPS 4
+
+// Screen 
+#define OLED_SDA 6//21 - on esp32dev
+#define OLED_SCL 7//22 - on esp32dev
 
 // External User Variables
 extern volatile bool displayLock; // Add this declaration
