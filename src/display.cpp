@@ -4,6 +4,7 @@
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C screen(U8G2_R0);
 TaskHandle_t DisplayTask;
+extern String currentIPAddress;
 
 // Time in milliseconds after which the display sleeps (10 seconds)
 int sleepTime = SLEEP_AFTER_MS;
@@ -41,6 +42,14 @@ void RightPrintToScreen(char const *str, u8g2_uint_t y)
   u8g2_uint_t width = screen.getStrWidth(str); // Calculate the text width
   screen.setCursor(123 - width, y);            // Set the cursor position for right alignment
   screen.print(str);                           // Print the text
+}
+
+//WEBSERVER
+void showIPAddress() {
+  screen.setFont(u8g2_font_5x8_tf); // Small font for IP display
+  screen.setCursor(2, 60);          // Position at bottom-left of the screen
+  screen.print("IP: ");
+  screen.print(currentIPAddress);
 }
 
 //MENU 
@@ -319,6 +328,10 @@ void showDebugModeStatus(bool debugMode)
     screen.sendBuffer();
     delay(2000); // Show the message for 2 seconds
     displayLock = false; // Unlock the display
+
+    showIPAddress(); // Always display IP at the bottom
+        screen.sendBuffer();
+        delay(1000);
 }
 
 
