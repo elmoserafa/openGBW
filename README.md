@@ -92,8 +92,8 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 1x 500g load cell 60 x 15,8 x 6,7 https://www.amazon.de/gp/product/B019JO9BWK/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&psc=1  
 1x 5 volt single channel relay (if you can't hook dirently to the existing relay)
 
-various jumper cables  
-a few WAGO or similar connectors
+Various jumper cables I would recommend shielded cables
+A few WAGO or similar connectors
 
 -----------
 
@@ -106,3 +106,21 @@ Eureka XL: https://thangs.com/designer/jbear-xyz/3d-model/Eureka%20Mignon%20XL%2
 These _should_ fit any grinder in the Mignon line up as far as I can tell.
 
 There's also STLs for a universal scale in the repo, though it is mostly meant as a starting off point to create your own. You can use the provided files, but you'll need to print an external enclosure for the ESP32, relay and any other components your setup might need.
+
+-----------
+
+### PCB
+
+This PCB was designed using the many resources in EAF and an absolute crap ton of youtube. KiCad is truly amazing. 
+
+If you want to just get the pcb made:
+The openGBW_pcbv1.2FF.zip is the zipped file you'll want to send to PCBWay/JLCPCB 
+
+If you want to modify and remix the pcb:
+The openGBW_proj.zip is the file you'll want to download
+
+This was done in KiCad as well. 
+
+The PCB requires that you solder the XIAO to the board. It also makes use of JST-XH connectors on the outward connections. 
+
+-----------
