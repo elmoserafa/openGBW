@@ -113,11 +113,11 @@ There's also STLs for a universal scale in the repo, though it is mostly meant a
 
 This PCB was designed using the many resources in EAF and an absolute crap ton of youtube. KiCad is truly amazing. 
 
-If you want to just get the pcb made:
-The openGBW_pcbv1.2FF.zip is the zipped file you'll want to send to PCBWay/JLCPCB 
+If you want to just **get the pcb** made:
+The **openGBW_pcbv1.2FF.zip** is the zipped file you'll want to send to PCBWay/JLCPCB 
 
-If you want to modify and remix the pcb:
-The openGBW_proj.zip is the file you'll want to download
+If you want to **modify and remix** the pcb:
+The **openGBW_proj.zip** is the file you'll want to download
 
 This was done in KiCad as well. 
 
