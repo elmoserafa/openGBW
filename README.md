@@ -7,6 +7,7 @@
  - Wake on rotary turn
  - Sleep adjustable via menus instead of code compile
  - Now uses XIAO-ESP32-C3
+ - Added the ability to use a button as a grinder trigger
 
 -----------
 
@@ -81,6 +82,11 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 | DT | GPIO 9 |
 | CLK | GPIO 8 |
 
+### MX Cherry Switch
+
+One side to pin 8 
+one side to GND
+
 -----------
 
 ### BOM
@@ -114,10 +120,10 @@ There's also STLs for a universal scale in the repo, though it is mostly meant a
 This PCB was designed using the many resources in EAF and an absolute crap ton of youtube. KiCad is truly amazing. 
 
 If you want to just **get the pcb** made:
-The **openGBW_pcbv1.2FF.zip** is the zipped file you'll want to send to PCBWay/JLCPCB 
+The **openGBW_pcbv1.3FF.zip** is the zipped file you'll want to send to PCBWay/JLCPCB 
 
 If you want to **modify and remix** the pcb:
-The **openGBW_proj.zip** is the file you'll want to download
+The **openGBW_v1.3_proj.zip** is the file you'll want to download
 
 This was done in KiCad as well. 
 

@@ -27,6 +27,8 @@ unsigned long finishedGrindingAt = 0; // Timestamp of when grinding finished
 bool greset = false;          // Flag for reset operation
 bool newOffset = false;       // Indicates if a new offset value is pending
 
+bool useButtonToGrind = DEFAULT_GRIND_TRIGGER_MODE;
+
 void tareScale()
 {
     Serial.println("Taring scale...");
@@ -95,17 +97,32 @@ void scaleStatusLoop(void *p) {
             if (millis() - lastTareAt > TARE_MIN_INTERVAL && ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
                 lastTareAt = 0; // Retare if conditions are met
             }
-            if (ABS(weightHistory.minSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE &&
-                    ABS(weightHistory.maxSince((int64_t)millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE) {
-                cupWeightEmpty = weightHistory.averageSince((int64_t)millis() - 500);
-                scaleStatus = STATUS_GRINDING_IN_PROGRESS;
+            if (useButtonToGrind) {
+                if (digitalRead(GRIND_BUTTON_PIN) == LOW) {
+                    cupWeightEmpty = scaleWeight;
+                    scaleStatus = STATUS_GRINDING_IN_PROGRESS;
                     if (!scaleMode) {
-                    newOffset = true;
-                    startedGrindingAt = millis();
+                        newOffset = true;
+                        startedGrindingAt = millis();
+                    }
+                    grinderToggle();
+                    delay(500); // debounce
+                    continue;
                 }
-                grinderToggle();
-                continue;
+            } else {
+                if (ABS(weightHistory.minSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE &&
+                    ABS(weightHistory.maxSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE) {
+                    cupWeightEmpty = weightHistory.averageSince(millis() - 500);
+                    scaleStatus = STATUS_GRINDING_IN_PROGRESS;
+                    if (!scaleMode) {
+                        newOffset = true;
+                        startedGrindingAt = millis();
+                    }
+                    grinderToggle();
+                    continue;
+                }
             }
+            
             break;
         }
         case STATUS_GRINDING_IN_PROGRESS:
@@ -229,6 +246,7 @@ void setupScale() {
 
     loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
+    pinMode(GRIND_BUTTON_PIN, INPUT_PULLUP);
     digitalWrite(GRINDER_ACTIVE_PIN, 0);
 
     preferences.begin("scale", false);
@@ -240,6 +258,7 @@ void setupScale() {
     grindMode = preferences.getBool("grindMode", false);
     shotCount = preferences.getUInt("shotCount", 0);
     sleepTime = preferences.getInt("sleepTime", SLEEP_AFTER_MS); // Default to SLEEP_AFTER_MS if not set
+    useButtonToGrind = preferences.getBool("grindTrigger", DEFAULT_GRIND_TRIGGER_MODE);
     preferences.end();
 
     loadcell.set_scale(scaleFactor);

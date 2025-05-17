@@ -59,6 +59,9 @@ extern bool debugMode;
 
 #define GRINDER_ACTIVE_PIN 4// 33 - on esp32dev
 
+#define GRIND_BUTTON_PIN 20
+#define DEFAULT_GRIND_TRIGGER_MODE true  // true = use button, false = cup detection
+
 #define TARE_MIN_INTERVAL 10 * 1000 // auto-tare at most once every 10 seconds
 
 #define ROTARY_ENCODER_A_PIN 8//32 - on esp32dev
@@ -97,3 +100,4 @@ extern bool screenJustWoke;
 extern unsigned int shotCount;
 extern int debugMenuItemsCount;
 extern int currentDebugMenuItem;
+extern bool useButtonToGrind;

@@ -67,7 +67,7 @@ MenuItem menuItems[10] = {
     {3, false, "Scale Mode", 0},
     {4, false, "Grinding Mode", 0},
     {5, false, "Info Menu", 0},
-    {6, false, "Sleep", 0},
+    {6, false, "Grind Trigger", 0},
     {7, false, "Exit", 0},
     {8, false, "Reset", 0},
     // Debug menu placeholder (conditional)
@@ -152,24 +152,25 @@ void showMenu()
   screen.sendBuffer(); // Send the buffer to the display
 }
 
-void showSleepTimerMenu() {
-    char buf[32];
-    screen.clearBuffer();
-    screen.setFontPosTop();
-    screen.setFont(u8g2_font_7x14B_tf);
+void showGrindTriggerMenu() {
+  char buf[32];
+  screen.clearBuffer();
+  screen.setFontPosTop();
+  screen.setFont(u8g2_font_7x14B_tf);
 
-    // Display title
-    CenterPrintToScreen("Adjust Sleep Timer", 0);
+  // Display title
+  CenterPrintToScreen("Grind Trigger Mode", 0);
 
-    // Display current sleep timer value in seconds
-    screen.setFont(u8g2_font_7x13_tr);
-    snprintf(buf, sizeof(buf), "Timer: %d sec", sleepTime / 1000); // Use `sleepTime` variable
-    CenterPrintToScreen(buf, 32);
+  // Display current trigger mode
+  screen.setFont(u8g2_font_7x13_tr);
+  snprintf(buf, sizeof(buf), "Mode: %s", useButtonToGrind ? "Button" : "Cup");
+  CenterPrintToScreen(buf, 32);
 
-    // Display instructions
-    LeftPrintToScreen("Turn to adjust", 50);
-    screen.sendBuffer();
+  // Display instructions
+  LeftPrintToScreen("Press button to toggle", 50);
+  screen.sendBuffer();
 }
+
 
 // Function to display the offset adjustment menu
 void showOffsetMenu()
@@ -368,7 +369,7 @@ void showSetting()
   }
   else if (currentSetting == 8)
   {
-    showSleepTimerMenu();
+    showGrindTriggerMenu();
   }
   else if (currentSetting == 9) {
     showDebugMenu();

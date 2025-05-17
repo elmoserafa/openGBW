@@ -322,13 +322,15 @@ void rotary_onButtonClick()
             currentSetting = -1;
             break;
         }
-        case 8: // Sleep Timer Menu
+        case 8: // Grind Trigger Menu
         {
+            useButtonToGrind = !useButtonToGrind;
             preferences.begin("scale", false);
-            preferences.putInt("sleepTime", sleepTime);
+            preferences.putBool("grindTrigger", useButtonToGrind);
             preferences.end();
-            scaleStatus = STATUS_IN_MENU;
-            currentSetting = -1;
+            Serial.print("Grind Trigger Mode changed to: ");
+            Serial.println(useButtonToGrind ? "Button" : "Cup");
+            exitToMenu();
             break;
         }
         case 9: // Debug Menu
