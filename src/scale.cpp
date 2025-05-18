@@ -1,6 +1,7 @@
 #include "config.hpp"
 #include "rotary.hpp"
 #include "scale.hpp"
+#include "display.hpp"
 
 // Variables for scale functionality
 double scaleWeight = 0;       // Current weight measured by the scale
@@ -52,6 +53,7 @@ void updateScale(void *parameter) {
         if (loadcell.wait_ready_timeout(300)) {
             lastEstimate = kalmanFilter.updateEstimate(loadcell.get_units(5));
             scaleWeight = lastEstimate;
+            Serial.printf("Scale reading: %.2f g\n", scaleWeight);
             if (ABS(scaleWeight) < 3)
             {
                 scaleWeight = 0;
@@ -97,21 +99,36 @@ void scaleStatusLoop(void *p) {
             if (millis() - lastTareAt > TARE_MIN_INTERVAL && ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
                 lastTareAt = 0; // Retare if conditions are met
             }
-            if (useButtonToGrind) {
-                if (digitalRead(GRIND_BUTTON_PIN) == LOW) {
-                    cupWeightEmpty = scaleWeight;
-                    scaleStatus = STATUS_GRINDING_IN_PROGRESS;
-                    if (!scaleMode) {
-                        newOffset = true;
-                        startedGrindingAt = millis();
-                    }
-                    grinderToggle();
-                    delay(500); // debounce
-                    continue;
+            static bool grinderButtonPressed = false;
+            static unsigned long grinderButtonPressedAt = 0;
+
+            if (digitalRead(GRIND_BUTTON_PIN) == LOW && !grinderButtonPressed)
+            {
+                grinderButtonPressed = true;
+                grinderButtonPressedAt = millis();
+                wakeScreen(); // wake screen immediately
+                Serial.println("Grinder button pressed, screen waking...");
+            }
+
+            if (grinderButtonPressed && millis() - grinderButtonPressedAt >= 1000)
+            {
+                grinderButtonPressed = false; // reset flag
+                cupWeightEmpty = scaleWeight;
+                scaleStatus = STATUS_GRINDING_IN_PROGRESS;
+                if (!scaleMode)
+                {
+                    newOffset = true;
+                    startedGrindingAt = millis();
                 }
-            } else {
+                grinderToggle();
+                Serial.println("Grinding started after delay.");
+                continue;
+            }
+            else
+            {
                 if (ABS(weightHistory.minSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE &&
-                    ABS(weightHistory.maxSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE) {
+                    ABS(weightHistory.maxSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE)
+                {
                     cupWeightEmpty = weightHistory.averageSince(millis() - 500);
                     scaleStatus = STATUS_GRINDING_IN_PROGRESS;
                     if (!scaleMode) {
@@ -122,7 +139,7 @@ void scaleStatusLoop(void *p) {
                     continue;
                 }
             }
-            
+
             break;
         }
         case STATUS_GRINDING_IN_PROGRESS:
@@ -250,7 +267,13 @@ void setupScale() {
     digitalWrite(GRINDER_ACTIVE_PIN, 0);
 
     preferences.begin("scale", false);
+    
     double scaleFactor = preferences.getDouble("calibration", (double)LOADCELL_SCALE_FACTOR);
+    if (scaleFactor <= 0 || std::isnan(scaleFactor)) {
+    scaleFactor = LOADCELL_SCALE_FACTOR;
+    preferences.putDouble("calibration", scaleFactor);
+    Serial.println("Invalid scale factor detected. Resetting to default.");
+    }
     setWeight = preferences.getDouble("setWeight", (double)COFFEE_DOSE_WEIGHT);
     offset = preferences.getDouble("offset", (double)COFFEE_DOSE_OFFSET);
     setCupWeight = preferences.getDouble("cup", (double)CUP_WEIGHT);
@@ -260,8 +283,9 @@ void setupScale() {
     sleepTime = preferences.getInt("sleepTime", SLEEP_AFTER_MS); // Default to SLEEP_AFTER_MS if not set
     useButtonToGrind = preferences.getBool("grindTrigger", DEFAULT_GRIND_TRIGGER_MODE);
     preferences.end();
-
+  Serial.printf("→ scaleFactor = %.0f  |  offset = %.0f\n", scaleFactor, offset);
     loadcell.set_scale(scaleFactor);
+    loadcell.set_offset(offset);
 
     xTaskCreatePinnedToCore(updateScale, "Scale", 10000, NULL, 0, &ScaleTask, 1);
     xTaskCreatePinnedToCore(scaleStatusLoop, "ScaleStatus", 10000, NULL, 0, &ScaleStatusTask, 1);
