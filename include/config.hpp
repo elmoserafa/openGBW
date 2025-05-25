@@ -48,7 +48,7 @@ extern bool debugMode;
 #define LOADCELL_DOUT_PIN 3//19 - on esp32dev
 #define LOADCELL_SCK_PIN 2//18 - on esp32dev
 
-#define LOADCELL_SCALE_FACTOR 7351
+#define LOADCELL_SCALE_FACTOR 735.1
 
 #define TARE_MEASURES 20 // use the average of measure for taring
 #define SIGNIFICANT_WEIGHT_CHANGE 5 // 5 grams changes are used to detect a significant change

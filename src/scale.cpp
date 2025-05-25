@@ -53,7 +53,7 @@ void updateScale(void *parameter) {
         if (loadcell.wait_ready_timeout(300)) {
             lastEstimate = kalmanFilter.updateEstimate(loadcell.get_units(5));
             scaleWeight = lastEstimate;
-            Serial.printf("Scale reading: %.2f g\n", scaleWeight);
+            // Serial.printf("Scale reading: %.2f g\n", scaleWeight);
             if (ABS(scaleWeight) < 3)
             {
                 scaleWeight = 0;
@@ -96,39 +96,39 @@ void scaleStatusLoop(void *p) {
 
         switch (scaleStatus) {
             case STATUS_EMPTY: {
-            if (millis() - lastTareAt > TARE_MIN_INTERVAL && ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
-                lastTareAt = 0; // Retare if conditions are met
-            }
-            static bool grinderButtonPressed = false;
-            static unsigned long grinderButtonPressedAt = 0;
-
-            if (digitalRead(GRIND_BUTTON_PIN) == LOW && !grinderButtonPressed)
-            {
-                grinderButtonPressed = true;
-                grinderButtonPressedAt = millis();
-                wakeScreen(); // wake screen immediately
-                Serial.println("Grinder button pressed, screen waking...");
-            }
-
-            if (grinderButtonPressed && millis() - grinderButtonPressedAt >= 1000)
-            {
-                grinderButtonPressed = false; // reset flag
-                cupWeightEmpty = scaleWeight;
-                scaleStatus = STATUS_GRINDING_IN_PROGRESS;
-                if (!scaleMode)
-                {
-                    newOffset = true;
-                    startedGrindingAt = millis();
+                if (millis() - lastTareAt > TARE_MIN_INTERVAL && ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
+                    lastTareAt = 0; // Retare if conditions are met
                 }
-                grinderToggle();
-                Serial.println("Grinding started after delay.");
-                continue;
-            }
-            else
-            {
-                if (ABS(weightHistory.minSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE &&
-                    ABS(weightHistory.maxSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE)
-                {
+            
+                static bool grinderButtonPressed = false;
+                static unsigned long grinderButtonPressedAt = 0;
+            
+                // Only allow button trigger if grindMode == true
+                if (grindMode && digitalRead(GRIND_BUTTON_PIN) == LOW && !grinderButtonPressed) {
+                    grinderButtonPressed = true;
+                    grinderButtonPressedAt = millis();
+                    wakeScreen(); // wake screen immediately
+                    Serial.println("Grinder button pressed, screen waking...");
+                }
+            
+                if (grindMode && grinderButtonPressed && millis() - grinderButtonPressedAt >= 600) {
+                    grinderButtonPressed = false; // reset flag
+                    cupWeightEmpty = scaleWeight;
+                    scaleStatus = STATUS_GRINDING_IN_PROGRESS;
+                    if (!scaleMode) {
+                        newOffset = true;
+                        startedGrindingAt = millis();
+                    }
+                    grinderToggle();
+                    Serial.println("Grinding started after delay.");
+                    continue;
+                }
+            
+                // Only allow cup trigger if grindMode == false
+                if (!grindMode &&
+                    ABS(weightHistory.minSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE &&
+                    ABS(weightHistory.maxSince(millis() - 1000) - setCupWeight) < CUP_DETECTION_TOLERANCE) {
+                    
                     cupWeightEmpty = weightHistory.averageSince(millis() - 500);
                     scaleStatus = STATUS_GRINDING_IN_PROGRESS;
                     if (!scaleMode) {
@@ -136,12 +136,12 @@ void scaleStatusLoop(void *p) {
                         startedGrindingAt = millis();
                     }
                     grinderToggle();
+                    Serial.println("Grinding started from cup detection.");
                     continue;
                 }
-            }
-
-            break;
-        }
+            
+                break;
+            }            
         case STATUS_GRINDING_IN_PROGRESS:
         {
             if (scaleWeight <= 0)
