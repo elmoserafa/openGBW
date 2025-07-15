@@ -64,9 +64,9 @@ extern bool debugMode;
 
 #define TARE_MIN_INTERVAL 10 * 1000 // auto-tare at most once every 10 seconds
 
-#define ROTARY_ENCODER_A_PIN 32
-#define ROTARY_ENCODER_B_PIN 23
-#define ROTARY_ENCODER_BUTTON_PIN 34
+#define ROTARY_ENCODER_A_PIN 23
+#define ROTARY_ENCODER_B_PIN 32
+#define ROTARY_ENCODER_BUTTON_PIN 27
 #define ROTARY_ENCODER_VCC_PIN -1
 #define ROTARY_ENCODER_STEPS 4
 

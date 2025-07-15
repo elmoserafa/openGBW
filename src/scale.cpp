@@ -254,17 +254,64 @@ void scaleStatusLoop(void *p) {
     }
 }
 
+// Alternative ISR function that calls the library ISR
+void IRAM_ATTR encoderISR() {
+    rotaryEncoder.readEncoder_ISR();
+}
+
 // Initializes the scale hardware and settings
 void setupScale() {
+    Serial.println("Initializing rotary encoder...");
+    Serial.print("Encoder A pin: ");
+    Serial.println(ROTARY_ENCODER_A_PIN);
+    Serial.print("Encoder B pin: ");
+    Serial.println(ROTARY_ENCODER_B_PIN);
+    Serial.print("Encoder Button pin: ");
+    Serial.println(ROTARY_ENCODER_BUTTON_PIN);
+    
+    // Set pin modes first with pullups
+    pinMode(ROTARY_ENCODER_A_PIN, INPUT_PULLUP);
+    pinMode(ROTARY_ENCODER_B_PIN, INPUT_PULLUP);
+    pinMode(ROTARY_ENCODER_BUTTON_PIN, INPUT_PULLUP);
+    
+    Serial.println("Pin modes set with pullups");
+    
+    // Test initial pin states
+    Serial.println("Testing encoder pins directly:");
+    Serial.print("Pin A state: ");
+    Serial.println(digitalRead(ROTARY_ENCODER_A_PIN));
+    Serial.print("Pin B state: ");
+    Serial.println(digitalRead(ROTARY_ENCODER_B_PIN));
+    
     rotaryEncoder.begin();
     rotaryEncoder.setup(readEncoderISR);
+    
+    // Enable circuitry for encoder
+    rotaryEncoder.enable();
+    
+    // Try manual interrupt attachment as fallback
+    attachInterrupt(digitalPinToInterrupt(ROTARY_ENCODER_A_PIN), encoderISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(ROTARY_ENCODER_B_PIN), encoderISR, CHANGE);
+    
+    Serial.println("Interrupts attached manually as fallback");
+    
+    // Set boundaries and acceleration - make it more responsive
     rotaryEncoder.setBoundaries(-10000, 10000, true);
-    rotaryEncoder.setAcceleration(100);
-
+    rotaryEncoder.setAcceleration(0); // Disable acceleration for more predictable response
+    
+    // Test encoder by reading initial value
+    int initialValue = rotaryEncoder.readEncoder();
+    Serial.print("Initial encoder value: ");
+    Serial.println(initialValue);
+    
+    Serial.println("Rotary encoder initialized successfully.");
+    
+    Serial.println("Initializing load cell...");
     loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
     pinMode(GRIND_BUTTON_PIN, INPUT_PULLUP);
     digitalWrite(GRINDER_ACTIVE_PIN, 0);
+    Serial.println("Load cell and pins initialized.");
 
     preferences.begin("scale", false);
     

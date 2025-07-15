@@ -1,6 +1,32 @@
 # Differences to sybutter's openGBW:
 - back to using ESP32 DevKit V1
 
+# Recent Changes & Fixes (July 2025)
+
+## Platform Migration
+- **Hardware**: Migrated from ESP32-C3 to ESP32 DevKit v1
+- **Pin Configuration**: Updated all GPIO pin assignments for ESP32 DevKit v1 compatibility
+- **Build System**: Updated PlatformIO configuration for esp32dev board
+
+## Rotary Encoder Improvements
+- **Fixed Input Detection**: Resolved issue where rotary encoder input was not being registered
+- **Enhanced Responsiveness**: Improved encoder sensitivity for precise value setting
+- **Precision Tuning**: Calibrated encoder to provide exact 0.1g increments for weight adjustment and 0.01g for offset adjustment
+- **Debugging**: Added comprehensive serial output for encoder troubleshooting
+
+## Technical Fixes
+- **GPIO Compatibility**: Changed encoder button pin from GPIO 34 to GPIO 27 (supports pull-up resistors)
+- **Interrupt Handling**: Added manual interrupt attachment for reliable encoder operation
+- **Pin Configuration**: Implemented proper INPUT_PULLUP modes for encoder pins
+- **Menu Navigation**: Enhanced menu system responsiveness and accuracy
+
+## Documentation Updates
+- **Wiring Tables**: Updated all pin assignments to match ESP32 DevKit v1
+- **Component References**: Changed hardware references from ESP32-C3 to ESP32 DevKit v1
+- **Troubleshooting**: Added encoder calibration and debugging information
+
+-----------
+
 # Differences to jb-xyz's openGBW:
  Extends https://github.com/jb-xyz/openGBW
 
@@ -81,9 +107,9 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 |---|---|
 | VCC/+ | VCC/3.3 |
 | GND | GND |
-| SW | GPIO 34 |
-| DT | GPIO 23 |
-| CLK | GPIO 32 |
+| SW | GPIO 27 |
+| DT | GPIO 32 |
+| CLK | GPIO 23 |
 
 ### MX Cherry Switch
 
@@ -131,5 +157,43 @@ The **openGBW_v1.3_proj.zip** is the file you'll want to download
 This was done in KiCad as well. 
 
 The PCB requires that you solder the ESP32 DevKit v1 to the board. It also makes use of JST-XH connectors on the outward connections. 
+
+-----------
+
+### Troubleshooting
+
+#### Rotary Encoder Issues
+
+**Problem**: Encoder button works but rotation is not detected
+- **Solution**: Check wiring connections to GPIO 23 (CLK) and GPIO 32 (DT)
+- **Debugging**: Monitor serial output at 115200 baud for encoder delta values
+
+**Problem**: Encoder is unresponsive or requires many clicks to change values
+- **Solution**: Encoder sensitivity has been calibrated for standard KY-040 encoders
+- **Technical**: Each physical detent now provides exactly 0.1g increment for weight and 0.01g for offset
+
+**Problem**: Values jump in large increments instead of precise steps
+- **Solution**: Recent firmware updates have fixed precision issues
+- **Verification**: Check serial monitor for "Weight:" and "Offset:" debug messages
+
+**Problem**: Encoder input not registered at all
+- **Potential Causes**: 
+  - GPIO 34 cannot be used for buttons (input-only, no pull-up support)
+  - Missing pull-up resistors on encoder pins
+  - Incorrect interrupt configuration
+- **Solutions**: 
+  - Use GPIO 27 for encoder button (has pull-up support)
+  - Ensure proper INPUT_PULLUP pin modes
+  - Verify manual interrupt attachment in code
+
+#### General Hardware Issues
+
+**Problem**: Scale readings are unstable
+- **Solution**: Ensure load cell is properly mounted and HX711 connections are secure
+- **Calibration**: Use the menu system to calibrate with a known 100g weight
+
+**Problem**: Display not working
+- **Solution**: Check I2C connections on GPIO 21 (SDA) and GPIO 22 (SCL)
+- **Power**: Verify 3.3V power supply to display
 
 -----------

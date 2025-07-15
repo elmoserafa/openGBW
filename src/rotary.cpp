@@ -376,8 +376,21 @@ void rotary_onButtonClick()
 // Handles rotary encoder input for menu navigation and adjustments
 void rotary_loop()
 {
+    // Simplified debug output - less verbose
+    static unsigned long lastDebugTime = 0;
+    if (millis() - lastDebugTime > 10000) { // Every 10 seconds
+        int currentValue = rotaryEncoder.readEncoder();
+        Serial.print("Encoder value: ");
+        Serial.println(currentValue);
+        lastDebugTime = millis();
+    }
+    
     if (rotaryEncoder.encoderChanged())
     {
+        int currentValue = rotaryEncoder.readEncoder();
+        Serial.print("Encoder changed to: ");
+        Serial.println(currentValue);
+        
         // Wake the screen if it's asleep
         if (millis() - lastSignificantWeightChangeAt > sleepTime)
         {
@@ -401,34 +414,74 @@ void rotary_loop()
                 Serial.println("Grind weight cannot be less than 0. Reset to 0.");
             }
             int newValue = rotaryEncoder.readEncoder();
-            setWeight += ((float)newValue - (float)encoderValue) / 10 * encoderDir;
-            encoderValue = newValue;
-            preferences.begin("scale", false);
-            preferences.putDouble("setWeight", setWeight);
-            preferences.end();
+            int encoderDelta = newValue - encoderValue;
+            
+            // Process encoder changes - make each detent = 0.1g
+            if (encoderDelta != 0) {
+                // If 6 detents was giving 0.1g, then each detent was 0.0167g
+                // To make each detent = 0.1g, multiply by 6
+                float increment = (float)encoderDelta * 0.1 * encoderDir;
+                setWeight += increment;
+                if (setWeight < 0) setWeight = 0; // Prevent negative values
+                
+                // Round to nearest 0.1g for display consistency
+                setWeight = round(setWeight * 10.0) / 10.0;
+                
+                encoderValue = newValue;
+                preferences.begin("scale", false);
+                preferences.putDouble("setWeight", setWeight);
+                preferences.end();
+                
+                Serial.print("Weight: ");
+                Serial.print(setWeight, 1);
+                Serial.print("g (delta: ");
+                Serial.print(encoderDelta);
+                Serial.print(", increment: ");
+                Serial.print(increment, 3);
+                Serial.println(")");
+            }
             break;
         }
         case STATUS_IN_MENU:
         {
-            // Navigate through menu items
+            // Navigate through menu items - improved responsiveness
             int newValue = rotaryEncoder.readEncoder();
-            currentMenuItem = (currentMenuItem + (newValue - encoderValue) * -encoderDir) % menuItemsCount;
-            currentMenuItem = currentMenuItem < 0 ? menuItemsCount + currentMenuItem : currentMenuItem;
-            encoderValue = newValue;
-            Serial.println(currentMenuItem);
+            int encoderDelta = newValue - encoderValue;
+            
+            // Only process if there's a significant change
+            if (abs(encoderDelta) >= 1) {
+                // Make menu navigation more responsive
+                int menuDirection = encoderDelta > 0 ? 1 : -1;
+                currentMenuItem = (currentMenuItem + menuDirection) % menuItemsCount;
+                currentMenuItem = currentMenuItem < 0 ? menuItemsCount + currentMenuItem : currentMenuItem;
+                
+                encoderValue = newValue;
+                Serial.print("Menu item: ");
+                Serial.println(currentMenuItem);
+            }
             break;
         }
         case STATUS_IN_SUBMENU:
         {
             int newValue = rotaryEncoder.readEncoder();
-            if (currentSetting == 2)
-            { // Offset menu
-                offset += ((float)newValue - (float)encoderValue) * encoderDir / 100;
+            int encoderDelta = newValue - encoderValue;
+            
+            if (currentSetting == 2 && encoderDelta != 0)
+            { // Offset menu - make each detent = 0.01g
+                offset += (float)encoderDelta * 0.01 * encoderDir;
                 encoderValue = newValue;
                 if (abs(offset) >= setWeight)
                 {
                     offset = setWeight; // Prevent nonsensical offsets
                 }
+                // Round to nearest 0.01g
+                offset = round(offset * 100.0) / 100.0;
+                
+                Serial.print("Offset: ");
+                Serial.print(offset, 2);
+                Serial.print("g (delta: ");
+                Serial.print(encoderDelta);
+                Serial.println(")");
             }
             else if (currentSetting == 3)
             {
@@ -442,9 +495,9 @@ void rotary_loop()
             {
                 greset = !greset;
             }
-            else if (currentSetting == 8)
+            else if (currentSetting == 8 && encoderDelta != 0)
             {                                                  // Sleep Timer menu
-                sleepTime += (newValue - encoderValue) * 1000; // Adjust by seconds
+                sleepTime += encoderDelta * 1000; // Adjust by seconds
                 if (sleepTime < 5000)
                 {
                     sleepTime = 5000; // Minimum sleep time: 5 seconds
@@ -459,14 +512,23 @@ void rotary_loop()
                 preferences.begin("scale", false);
                 preferences.putInt("sleepTime", sleepTime);
                 preferences.end();
+                
+                Serial.print("Sleep time adjusted to: ");
+                Serial.print(sleepTime / 1000);
+                Serial.println(" seconds");
             }
             else if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
             {
                 int newValue = rotaryEncoder.readEncoder();
-                currentDebugMenuItem = (currentDebugMenuItem + (newValue - encoderValue) * -encoderDir) % debugMenuItemsCount;
-                currentDebugMenuItem = currentDebugMenuItem < 0 ? debugMenuItemsCount + currentDebugMenuItem : currentDebugMenuItem;
-                encoderValue = newValue;
-                showDebugMenu(); // Update the Debug Menu display
+                int encoderDelta = newValue - encoderValue;
+                
+                if (encoderDelta != 0) {
+                    int menuDirection = encoderDelta > 0 ? 1 : -1;
+                    currentDebugMenuItem = (currentDebugMenuItem + menuDirection) % debugMenuItemsCount;
+                    currentDebugMenuItem = currentDebugMenuItem < 0 ? debugMenuItemsCount + currentDebugMenuItem : currentDebugMenuItem;
+                    encoderValue = newValue;
+                    showDebugMenu(); // Update the Debug Menu display
+                }
             }
             break;
         }
@@ -481,6 +543,8 @@ void rotary_loop()
     }
     if (rotaryEncoder.isEncoderButtonClicked())
     {
+        Serial.println("Encoder button clicked!");
+        
         if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
         {
             handleDebugMenuAction(); // Perform the selected debug menu action
