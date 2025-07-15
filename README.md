@@ -20,6 +20,7 @@
 - **Interrupt Handling**: Added manual interrupt attachment for reliable encoder operation
 - **Pin Configuration**: Implemented proper INPUT_PULLUP modes for encoder pins
 - **Menu Navigation**: Enhanced menu system responsiveness and accuracy
+- **Grinder Control**: Added support for NPN transistor control of 5V grinder signals that need to be pulled to ground
 
 ## Documentation Updates
 - **Wiring Tables**: Updated all pin assignments to match ESP32 DevKit v1
@@ -92,8 +93,9 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 | SCL | GPIO 22 |
 | SDA | GPIO 21 |
 
-#### Relay
+#### Grinder Control
 
+**Option 1: Direct Relay Control**
 | Relay | ESP32 | Grinder |
 |---|---|---|
 | + | VCC/3.3 | |
@@ -101,6 +103,17 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 | S | GPIO 33 | |
 | Middle Screw Terminal | | push button |
 | NO Screw Terminal | | push button |
+
+**Option 2: NPN Transistor Control (for 5V signal that needs to be pulled to ground)**
+| Component | Connection |
+|---|---|
+| Resistor (1kΩ) | GPIO 33 → NPN Base |
+| NPN Emitter | GND |
+| NPN Collector | Grinder 5V signal line |
+| Grinder 5V+ | Grinder power supply |
+
+*When ESP32 GPIO 33 goes HIGH → NPN turns ON → Pulls 5V signal to ground → Grinder starts*  
+*When ESP32 GPIO 33 goes LOW → NPN turns OFF → 5V signal stays high → Grinder stops*
 
 #### Rotary Encoder
 
@@ -126,9 +139,12 @@ one side to GND
 1x 0.9" OLED Display  
 1x KY-040 rotary encoder  
 1x 500g load cell 60 x 15,8 x 6,7 https://www.amazon.de/gp/product/B019JO9BWK/ref=ppx_yo_dt_b_asin_title_o02_s00?ie=UTF8&psc=1  
-1x 5 volt single channel relay (if you can't hook dirently to the existing relay)
 
-Various jumper cables I would recommend shielded cables
+**Grinder Control Options:**
+- Option 1: 1x 5V single channel relay (for direct relay control)
+- Option 2: 1x NPN transistor (2N2222, BC547, or similar) + 1x 1kΩ resistor (for 5V signal control)
+
+Various jumper cables I would recommend shielded cables  
 A few WAGO or similar connectors
 
 -----------

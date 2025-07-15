@@ -69,6 +69,8 @@ void updateScale(void *parameter) {
 }
 
 // Toggles the grinder on or off based on mode
+// GPIO HIGH = NPN transistor ON = Pulls grinder 5V signal to ground = Grinder starts
+// GPIO LOW = NPN transistor OFF = Grinder 5V signal stays high = Grinder stops
 void grinderToggle() {
     if (!scaleMode) {
         if (grindMode) {
@@ -78,9 +80,9 @@ void grinderToggle() {
             Serial.println(grinderActive ? "ON" : "OFF");
         } else {
             Serial.println("Grinder ON (Impulse Mode)");
-            digitalWrite(GRINDER_ACTIVE_PIN, 1);
+            digitalWrite(GRINDER_ACTIVE_PIN, 1); // Pull 5V signal to ground via NPN
             delay(100);
-            digitalWrite(GRINDER_ACTIVE_PIN, 0);
+            digitalWrite(GRINDER_ACTIVE_PIN, 0); // Release 5V signal (back to HIGH)
             Serial.println("Grinder OFF");
         }
     }
@@ -310,7 +312,7 @@ void setupScale() {
     loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
     pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
     pinMode(GRIND_BUTTON_PIN, INPUT_PULLUP);
-    digitalWrite(GRINDER_ACTIVE_PIN, 0);
+    digitalWrite(GRINDER_ACTIVE_PIN, 0); // Initialize LOW = NPN OFF = Grinder 5V signal HIGH = Grinder stopped
     Serial.println("Load cell and pins initialized.");
 
     preferences.begin("scale", false);
