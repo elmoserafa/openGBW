@@ -1,3 +1,6 @@
+# Differences to sybutter's openGBW:
+- back to using ESP32 DevKit V1
+
 # Differences to jb-xyz's openGBW:
  Extends https://github.com/jb-xyz/openGBW
 
@@ -27,7 +30,7 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 ### Getting started
 
 1) 3D print the included models for a Eureka Mignon XL or design your own
-2) flash the firmware onto an XIAO-ESP32-C3
+2) flash the firmware onto an ESP32 DevKit v1
 3) connect the display, relay, load cell and rotary encoder to the ESP32 according to the wiring instructions
 4) go into the menu by pressing the button of the rotary encoder and set your initial offset. -2g is a good enough starting value for a Mignon XL
 5) if you're using the Mignon's push button to activate the grinder set grinding mode to impulse. If you're connected directly to the motor relay use continuous.
@@ -50,8 +53,8 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 | white  | A-  | |
 |   | VCC  | VCC/3.3 |
 |   | GND  | GND |
-|   | SCK  | GPIO 2 |
-|   | DT  | GPIO 2 |
+|   | SCK  | GPIO 18 |
+|   | DT  | GPIO 19 |
 
 #### Display
 
@@ -59,8 +62,8 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 |---|---|
 | VCC | VCC/3.3 |
 | GND | GND |
-| SCL | GPIO 7 |
-| SDA | GPIO 6 |
+| SCL | GPIO 22 |
+| SDA | GPIO 21 |
 
 #### Relay
 
@@ -68,7 +71,7 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 |---|---|---|
 | + | VCC/3.3 | |
 | - | GND | |
-| S | GPIO 4 | |
+| S | GPIO 33 | |
 | Middle Screw Terminal | | push button |
 | NO Screw Terminal | | push button |
 
@@ -78,20 +81,20 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 |---|---|
 | VCC/+ | VCC/3.3 |
 | GND | GND |
-| SW | GPIO 10 |
-| DT | GPIO 9 |
-| CLK | GPIO 8 |
+| SW | GPIO 34 |
+| DT | GPIO 23 |
+| CLK | GPIO 32 |
 
 ### MX Cherry Switch
 
-One side to pin 8 
+One side to GPIO 25 
 one side to GND
 
 -----------
 
 ### BOM
 
-1x XIAO-ESP32-C3  
+1x ESP32 DevKit v1  
 1x HX711 load cell amplifier  
 1x 0.9" OLED Display  
 1x KY-040 rotary encoder  
@@ -127,6 +130,6 @@ The **openGBW_v1.3_proj.zip** is the file you'll want to download
 
 This was done in KiCad as well. 
 
-The PCB requires that you solder the XIAO to the board. It also makes use of JST-XH connectors on the outward connections. 
+The PCB requires that you solder the ESP32 DevKit v1 to the board. It also makes use of JST-XH connectors on the outward connections. 
 
 -----------

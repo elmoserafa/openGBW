@@ -8,7 +8,7 @@ AsyncWebServer server(80);
 
 String currentIPAddress = "192.168.4.1"; // Default AP mode IP
 
-const char *apSSID = "ESP32C3_Config_openGBW";  // AP SSID
+const char *apSSID = "ESP32_Config_openGBW";  // AP SSID
 const char *apPassword = "12345678";           // AP Password (must be at least 8 characters)
 
 void updateIPAddress() {
