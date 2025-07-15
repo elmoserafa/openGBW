@@ -12,6 +12,7 @@
 - **Fixed Input Detection**: Resolved issue where rotary encoder input was not being registered
 - **Enhanced Responsiveness**: Improved encoder sensitivity for precise value setting
 - **Precision Tuning**: Calibrated encoder to provide exact 0.1g increments for weight adjustment and 0.01g for offset adjustment
+- **Wake on Input**: Added wake functionality for both encoder rotation and button press when screen is asleep
 - **Debugging**: Added comprehensive serial output for encoder troubleshooting
 
 ## Technical Fixes

@@ -116,6 +116,14 @@ void rotary_onButtonClick()
 
     if (rotaryEncoder.isEncoderButtonClicked())
     {
+        // Wake the screen if it's asleep
+        if (millis() - lastSignificantWeightChangeAt > sleepTime)
+        {
+            Serial.println("Screen waking due to button press...");
+            wakeScreen();
+            return; // Exit early to prevent other button actions while waking
+        }
+        
         if (lastTimePressed == 0)
         {
             lastTimePressed = currentTime; // Record the time of the initial button press
@@ -544,6 +552,14 @@ void rotary_loop()
     if (rotaryEncoder.isEncoderButtonClicked())
     {
         Serial.println("Encoder button clicked!");
+        
+        // Wake the screen if it's asleep
+        if (millis() - lastSignificantWeightChangeAt > sleepTime)
+        {
+            Serial.println("Screen waking due to button press...");
+            wakeScreen();
+            return; // Exit early to prevent other button actions while waking
+        }
         
         if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
         {
