@@ -261,11 +261,43 @@ void rotary_onButtonClick()
         }
         case 1: // Calibration Menu
         {
-            double newCalibrationValue = preferences.getDouble("calibration", 1.0) * (scaleWeight / 100);
+            // Get the raw reading from the load cell (without scale factor applied)
+            loadcell.set_scale(1.0); // Temporarily set scale to 1 to get raw reading
+            delay(500); // Allow stabilization
+            double rawReading = loadcell.get_units(10); // Take 10 readings for accuracy
+            
+            // Validate the raw reading before proceeding
+            if (abs(rawReading) < 1000 || abs(rawReading) > 1000000) {
+                Serial.printf("Error: Invalid raw reading (%.2f). Calibration aborted.\n", rawReading);
+                // Restore previous calibration factor
+                preferences.begin("scale", false);
+                double previousCalibration = preferences.getDouble("calibration", (double)LOADCELL_SCALE_FACTOR);
+                preferences.end();
+                loadcell.set_scale(previousCalibration);
+                scaleStatus = STATUS_IN_MENU;
+                currentSetting = -1;
+                break;
+            }
+            
+            // Calculate the correct calibration factor: rawReading / knownWeight
+            double newCalibrationValue = rawReading / 100.0; // 100g known weight
+            
+            // Additional sanity check on the calculated calibration factor
+            if (abs(newCalibrationValue) < 100 || abs(newCalibrationValue) > 10000) {
+                Serial.printf("Error: Calculated calibration factor (%.2f) is out of reasonable range. Using default.\n", newCalibrationValue);
+                newCalibrationValue = (double)LOADCELL_SCALE_FACTOR;
+            }
+            
+            // Save and apply the new calibration
             preferences.begin("scale", false);
             preferences.putDouble("calibration", newCalibrationValue);
             preferences.end();
+            
             loadcell.set_scale(newCalibrationValue);
+            
+            Serial.printf("Calibration completed: Raw reading = %.2f, New scale factor = %.2f\n", 
+                         rawReading, newCalibrationValue);
+            
             scaleStatus = STATUS_IN_MENU;
             currentSetting = -1;
             break;
