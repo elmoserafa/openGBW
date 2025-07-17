@@ -93,6 +93,12 @@ extern double setCupWeight;
 extern MenuItem menuItems[];
 extern int currentMenuItem;
 extern int currentSetting;
+extern int currentSubmenu; // 0 = main menu, 1 = mode submenu, 2 = config submenu
+extern int currentSubmenuItem;
+extern int modeMenuItemsCount;
+extern int configMenuItemsCount;
+extern MenuItem modeMenuItems[];
+extern MenuItem configMenuItems[];
 extern int sleepTime;
 extern bool screenJustWoke;
 extern unsigned int shotCount;

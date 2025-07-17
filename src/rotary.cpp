@@ -41,14 +41,31 @@ void exitToMenu()
 {
     if (scaleStatus == STATUS_IN_SUBMENU || scaleStatus == STATUS_INFO_MENU)
     {
-        scaleStatus = STATUS_IN_MENU;
+        if (currentSubmenu == 0) {
+            // Return to main menu if we were in a main menu setting
+            scaleStatus = STATUS_IN_MENU;
+        } else {
+            // Return to appropriate submenu if we were in a submenu setting
+            scaleStatus = STATUS_IN_MENU;
+        }
         currentSetting = -1;
-        Serial.println("Exiting to main menu");
+        Serial.println("Exiting to menu");
     }
     else if (scaleStatus == STATUS_IN_MENU)
     {
-        scaleStatus = STATUS_EMPTY;
-        Serial.println("Exiting to empty state");
+        if (currentSubmenu != 0) {
+            // Go back to main menu from submenu
+            currentSubmenu = 0;
+            currentSubmenuItem = 0;
+            Serial.println("Returning to main menu");
+        } else {
+            // Exit to empty state from main menu
+            scaleStatus = STATUS_EMPTY;
+            currentMenuItem = 0;
+            currentSubmenu = 0;
+            currentSubmenuItem = 0;
+            Serial.println("Exiting to empty state");
+        }
     }
 }
 
@@ -150,76 +167,132 @@ void rotary_onButtonClick()
     }
     else if (scaleStatus == STATUS_IN_MENU)
     {
-        // Navigate through the menu items
-        switch (currentMenuItem)
+        // Navigate through the menu items based on current submenu
+        if (currentSubmenu == 0) // Main menu
         {
-        case 0: // Cup Weight Menu
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 0;
-            tareScale(); // Tare the scale
-            delay(500);  // Wait for stabilization
-
-            if (scaleWeight > 0)
+            switch (currentMenuItem)
             {
-                setCupWeight = scaleWeight;
-                preferences.begin("scale", false);
-                preferences.putDouble("cup", setCupWeight);
-                preferences.end();
-
-                Serial.println("Cup weight set successfully");
+            case 0: // Exit
+                menuPending = false;                // Reset pending flag
+                scaleStatus = STATUS_EMPTY;         // Reset to the empty state
+                currentMenuItem = 0;                // Reset menu index
+                currentSubmenu = 0;                 // Reset submenu
+                currentSubmenuItem = 0;             // Reset submenu item
+                rotaryEncoder.setAcceleration(100); // Restore encoder acceleration
+                Serial.println("Exited Menu to main screen");
+                delay(200); // Debounce to prevent immediate re-trigger
+                break;
+            case 1: // Mode submenu
+                currentSubmenu = 1;
+                currentSubmenuItem = 0;
+                Serial.println("Entering Mode submenu");
+                break;
+            case 2: // Offset Menu
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 2;
+                Serial.println("Offset Menu");
+                break;
+            case 3: // Info Menu
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 5;
+                Serial.println("Info Menu");
+                break;
+            case 4: // Configuration submenu
+                currentSubmenu = 2;
+                currentSubmenuItem = 0;
+                Serial.println("Entering Configuration submenu");
+                break;
             }
-            else
-            {
-                Serial.println("Error: Invalid cup weight detected");
-            }
-            break;
-
-        case 1: // Calibration Menu
-        {
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 1;
-            tareScale();
-            Serial.println("Calibration Menu");
-            break;
         }
-        case 2: // Offset Menu
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 2;
-            Serial.println("Offset Menu");
-            break;
-        case 3: // Scale Mode Menu
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 3;
-            Serial.println("Scale Mode Menu");
-            break;
-        case 4: // Grinding Mode Menu
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 4;
-            Serial.println("Grind Mode Menu");
-            break;
-        case 5: // Info Menu
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 5;
-            Serial.println("Info Menu");
-            break;
-        case 6: // Grind Trigger Menu
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 8; // Use setting 8 for grind trigger
-            Serial.println("Grind Trigger Menu");
-            break;
-        case 7:                                 // Exit
-            menuPending = false;                // Reset pending flag
-            scaleStatus = STATUS_EMPTY;         // Reset to the empty state
-            currentMenuItem = 0;                // Reset menu index
-            rotaryEncoder.setAcceleration(100); // Restore encoder acceleration
-            Serial.println("Exited Menu to main screen");
-            delay(200); // Debounce to prevent immediate re-trigger
-            break;
-        case 8: // Reset Menu
-            scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 6;
-            Serial.println("Reset Menu");
-            break;
+        else if (currentSubmenu == 1) // Mode submenu
+        {
+            switch (currentSubmenuItem)
+            {
+            case 0: // GBW mode
+                manualGrindMode = false;
+                preferences.begin("scale", false);
+                preferences.putBool("manualGrindMode", manualGrindMode);
+                preferences.end();
+                showModeChangeMessage("GBW", "Selected");
+                delay(1000);
+                currentSubmenu = 0; // Return to main menu
+                currentMenuItem = 0;
+                Serial.println("GBW mode selected");
+                break;
+            case 1: // Manual mode
+                manualGrindMode = true;
+                preferences.begin("scale", false);
+                preferences.putBool("manualGrindMode", manualGrindMode);
+                preferences.end();
+                showModeChangeMessage("Manual", "Selected");
+                delay(1000);
+                currentSubmenu = 0; // Return to main menu
+                currentMenuItem = 0;
+                Serial.println("Manual mode selected");
+                break;
+            case 2: // Back
+                currentSubmenu = 0; // Return to main menu
+                currentSubmenuItem = 0;
+                Serial.println("Returning to main menu from Mode submenu");
+                break;
+            }
+        }
+        else if (currentSubmenu == 2) // Configuration submenu
+        {
+            switch (currentSubmenuItem)
+            {
+            case 0: // Calibration Menu
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 1;
+                tareScale();
+                Serial.println("Calibration Menu");
+                break;
+            case 1: // Cup Weight Menu
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 0;
+                tareScale(); // Tare the scale
+                delay(500);  // Wait for stabilization
+
+                if (scaleWeight > 0)
+                {
+                    setCupWeight = scaleWeight;
+                    preferences.begin("scale", false);
+                    preferences.putDouble("cup", setCupWeight);
+                    preferences.end();
+
+                    Serial.println("Cup weight set successfully");
+                }
+                else
+                {
+                    Serial.println("Error: Invalid cup weight detected");
+                }
+                break;
+            case 2: // Scale Mode Menu
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 3;
+                Serial.println("Scale Mode Menu");
+                break;
+            case 3: // Grinding Mode Menu
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 4;
+                Serial.println("Grind Mode Menu");
+                break;
+            case 4: // Grind Trigger Menu
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 8; // Use setting 8 for grind trigger
+                Serial.println("Grind Trigger Menu");
+                break;
+            case 5: // Reset Menu
+                scaleStatus = STATUS_IN_SUBMENU;
+                currentSetting = 6;
+                Serial.println("Reset Menu");
+                break;
+            case 6: // Back
+                currentSubmenu = 0; // Return to main menu
+                currentSubmenuItem = 0;
+                Serial.println("Returning to main menu from Configuration submenu");
+                break;
+            }
         }
     }
     else if (scaleStatus == STATUS_IN_SUBMENU)
@@ -474,7 +547,7 @@ void rotary_loop()
         }
         case STATUS_IN_MENU:
         {
-            // Navigate through menu items - improved responsiveness
+            // Navigate through menu items based on current submenu
             int newValue = rotaryEncoder.readEncoder();
             int encoderDelta = newValue - encoderValue;
             
@@ -482,12 +555,28 @@ void rotary_loop()
             if (abs(encoderDelta) >= 1) {
                 // Apply encoder direction consistently
                 int menuDirection = (encoderDelta > 0 ? 1 : -1) * encoderDir;
-                currentMenuItem = (currentMenuItem + menuDirection) % menuItemsCount;
-                currentMenuItem = currentMenuItem < 0 ? menuItemsCount + currentMenuItem : currentMenuItem;
+                
+                if (currentSubmenu == 0) {
+                    // Main menu navigation
+                    currentMenuItem = (currentMenuItem + menuDirection) % menuItemsCount;
+                    currentMenuItem = currentMenuItem < 0 ? menuItemsCount + currentMenuItem : currentMenuItem;
+                    Serial.print("Main menu item: ");
+                    Serial.println(currentMenuItem);
+                } else if (currentSubmenu == 1) {
+                    // Mode submenu navigation
+                    currentSubmenuItem = (currentSubmenuItem + menuDirection) % modeMenuItemsCount;
+                    currentSubmenuItem = currentSubmenuItem < 0 ? modeMenuItemsCount + currentSubmenuItem : currentSubmenuItem;
+                    Serial.print("Mode submenu item: ");
+                    Serial.println(currentSubmenuItem);
+                } else if (currentSubmenu == 2) {
+                    // Configuration submenu navigation
+                    currentSubmenuItem = (currentSubmenuItem + menuDirection) % configMenuItemsCount;
+                    currentSubmenuItem = currentSubmenuItem < 0 ? configMenuItemsCount + currentSubmenuItem : currentSubmenuItem;
+                    Serial.print("Config submenu item: ");
+                    Serial.println(currentSubmenuItem);
+                }
                 
                 encoderValue = newValue;
-                Serial.print("Menu item: ");
-                Serial.println(currentMenuItem);
             }
             break;
         }

@@ -57,20 +57,40 @@ void showIPAddress() {
 // Menu items for user interface
 int currentMenuItem = 0;      // Index of the current menu item
 int currentSetting;           // Index of the current setting being adjusted
-int menuItemsCount = 9;       // Total number of menu items
+int menuItemsCount = 5;       // Total number of main menu items
 
- // Menu items for settings and calibration
-MenuItem menuItems[10] = {
-    {0, false, "Cup weight", 1, &setCupWeight},
-    {1, false, "Calibrate", 0},
+// Main menu items
+MenuItem menuItems[5] = {
+    {0, false, "Exit", 0},
+    {1, false, "Mode", 0},
     {2, false, "Offset", 0.1, &offset},
-    {3, false, "Scale Mode", 0},
-    {4, false, "Grinding Mode", 0},
-    {5, false, "Info Menu", 0},
-    {6, false, "Grind Trigger", 0},
-    {7, false, "Exit", 0},
-    {8, false, "Reset", 0}
+    {3, false, "Info Menu", 0},
+    {4, false, "Configuration", 0}
 };
+
+// Mode submenu items
+int modeMenuItemsCount = 3;
+MenuItem modeMenuItems[3] = {
+    {0, false, "GBW", 0},
+    {1, false, "Manual", 0},
+    {2, false, "Back", 0}
+};
+
+// Configuration submenu items
+int configMenuItemsCount = 7;
+MenuItem configMenuItems[7] = {
+    {0, false, "Calibrate", 0},
+    {1, false, "Cup weight", 1, &setCupWeight},
+    {2, false, "Scale Mode", 0},
+    {3, false, "Grinding Mode", 0},
+    {4, false, "Grind Trigger", 0},
+    {5, false, "Reset", 0},
+    {6, false, "Back", 0}
+};
+
+// Submenu tracking variables
+int currentSubmenu = 0; // 0 = main menu, 1 = mode submenu, 2 = config submenu
+int currentSubmenuItem = 0;
 
 void wakeScreen() {
     // Reset the sleep timer and update the display
@@ -104,6 +124,54 @@ void showMenu()
   LeftPrintToScreen(next.menuName, 51);          // Print the next menu item
 
   screen.sendBuffer(); // Send the buffer to the display
+}
+
+// Function to display the mode submenu
+void showModeMenu()
+{
+  int prevIndex = (currentSubmenuItem - 1) % modeMenuItemsCount;
+  int nextIndex = (currentSubmenuItem + 1) % modeMenuItemsCount;
+
+  // Handle negative index wrap-around
+  prevIndex = prevIndex < 0 ? prevIndex + modeMenuItemsCount : prevIndex;
+  MenuItem prev = modeMenuItems[prevIndex];
+  MenuItem current = modeMenuItems[currentSubmenuItem];
+  MenuItem next = modeMenuItems[nextIndex];
+
+  screen.clearBuffer();
+  screen.setFontPosTop();
+  screen.setFont(u8g2_font_7x14B_tf);
+  CenterPrintToScreen("Mode", 0);
+  screen.setFont(u8g2_font_7x13_tr);
+  LeftPrintToScreen(prev.menuName, 19);
+  LeftPrintActiveToScreen(current.menuName, 35);
+  LeftPrintToScreen(next.menuName, 51);
+
+  screen.sendBuffer();
+}
+
+// Function to display the configuration submenu
+void showConfigMenu()
+{
+  int prevIndex = (currentSubmenuItem - 1) % configMenuItemsCount;
+  int nextIndex = (currentSubmenuItem + 1) % configMenuItemsCount;
+
+  // Handle negative index wrap-around
+  prevIndex = prevIndex < 0 ? prevIndex + configMenuItemsCount : prevIndex;
+  MenuItem prev = configMenuItems[prevIndex];
+  MenuItem current = configMenuItems[currentSubmenuItem];
+  MenuItem next = configMenuItems[nextIndex];
+
+  screen.clearBuffer();
+  screen.setFontPosTop();
+  screen.setFont(u8g2_font_7x14B_tf);
+  CenterPrintToScreen("Configuration", 0);
+  screen.setFont(u8g2_font_7x13_tr);
+  LeftPrintToScreen(prev.menuName, 19);
+  LeftPrintActiveToScreen(current.menuName, 35);
+  LeftPrintToScreen(next.menuName, 51);
+
+  screen.sendBuffer();
 }
 
 void showGrindTriggerMenu() {
@@ -441,7 +509,13 @@ void updateDisplay(void *parameter)
       }
       else if (scaleStatus == STATUS_IN_MENU)
       {
-        showMenu();
+        if (currentSubmenu == 0) {
+          showMenu(); // Main menu
+        } else if (currentSubmenu == 1) {
+          showModeMenu(); // Mode submenu
+        } else if (currentSubmenu == 2) {
+          showConfigMenu(); // Configuration submenu
+        }
       }
       else if (scaleStatus == STATUS_IN_SUBMENU)
       {

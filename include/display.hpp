@@ -7,6 +7,8 @@
 void setupDisplay();
 void showCupWeightSetScreen(double cupWeight);
 void showInfoMenu();
+void showModeMenu();
+void showConfigMenu();
 void wakeScreen();
 void showIpAddress();
 void showTaringMessage();
