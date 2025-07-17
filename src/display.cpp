@@ -504,13 +504,13 @@ void updateDisplay(void *parameter)
         screen.setFont(u8g2_font_7x14B_tf);
         screen.setFontPosCenter();
         screen.setCursor(0, 28);
-        snprintf(buf, sizeof(buf), "%3.1fg", abs(scaleWeight));
+        snprintf(buf, sizeof(buf), "%3.1fg", scaleWeight);
         CenterPrintToScreen(buf, 32);
 
         screen.setFont(u8g2_font_7x13_tf);
         screen.setFontPosCenter();
         screen.setCursor(5, 50);
-        snprintf(buf2, sizeof(buf2), "Set: %3.1fg", abs(setWeight));
+        snprintf(buf2, sizeof(buf2), "Set: %3.1fg", setWeight);
         LeftPrintToScreen(buf2, 50);
       }
       else if (scaleStatus == STATUS_GRINDING_FAILED)
