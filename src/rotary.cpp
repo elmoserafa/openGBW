@@ -15,7 +15,7 @@ AiEsp32RotaryEncoder rotaryEncoder = AiEsp32RotaryEncoder(
     ROTARY_ENCODER_STEPS);
 
 // Vars
-int encoderDir = 1;   // Direction of the rotary encoder
+int encoderDir = -1;   // Direction of the rotary encoder: 1 = normal, -1 = reversed
 int encoderValue = 0; // Current value of the rotary encoder
 static int clickCount = 0;
 const unsigned long clickThreshold = 500; // 500ms max interval for rapid clicks
@@ -465,8 +465,8 @@ void rotary_loop()
             
             // Only process if there's a significant change
             if (abs(encoderDelta) >= 1) {
-                // Make menu navigation more responsive
-                int menuDirection = encoderDelta > 0 ? 1 : -1;
+                // Apply encoder direction consistently
+                int menuDirection = (encoderDelta > 0 ? 1 : -1) * encoderDir;
                 currentMenuItem = (currentMenuItem + menuDirection) % menuItemsCount;
                 currentMenuItem = currentMenuItem < 0 ? menuItemsCount + currentMenuItem : currentMenuItem;
                 
@@ -512,7 +512,7 @@ void rotary_loop()
             }
             else if (currentSetting == 8 && encoderDelta != 0)
             {                                                  // Sleep Timer menu
-                sleepTime += encoderDelta * 1000; // Adjust by seconds
+                sleepTime += encoderDelta * 1000 * encoderDir; // Adjust by seconds, apply direction
                 if (sleepTime < 5000)
                 {
                     sleepTime = 5000; // Minimum sleep time: 5 seconds
@@ -538,7 +538,7 @@ void rotary_loop()
                 int encoderDelta = newValue - encoderValue;
                 
                 if (encoderDelta != 0) {
-                    int menuDirection = encoderDelta > 0 ? 1 : -1;
+                    int menuDirection = (encoderDelta > 0 ? 1 : -1) * encoderDir;
                     currentDebugMenuItem = (currentDebugMenuItem + menuDirection) % debugMenuItemsCount;
                     currentDebugMenuItem = currentDebugMenuItem < 0 ? debugMenuItemsCount + currentDebugMenuItem : currentDebugMenuItem;
                     encoderValue = newValue;
