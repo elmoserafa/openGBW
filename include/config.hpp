@@ -104,3 +104,4 @@ extern int currentDebugMenuItem;
 extern bool useButtonToGrind;
 extern bool showingTaringMessage;
 extern unsigned long taringMessageStartTime;
+extern bool manualGrindMode;

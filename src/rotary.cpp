@@ -76,7 +76,6 @@ void rotary_onButtonClick()
     unsigned long currentTime = millis();
     static unsigned long lastTimePressed = 0;      // Timestamp of the last button press
     const unsigned long clickDelay = 300;          // Delay to differentiate single vs double click (in ms)
-    const unsigned long longPressThreshold = 3000; // Threshold for long press (in ms)
     static bool menuPending = false;               // Flag to track if a single click action is pending
 
     // Handle rapid clicks for debug mode
@@ -432,6 +431,59 @@ void rotary_onButtonClick()
 // Handles rotary encoder input for menu navigation and adjustments
 void rotary_loop()
 {
+    // Long press detection using direct GPIO reading
+    static unsigned long buttonPressStartTime = 0;
+    static bool longPressProcessed = false;
+    const unsigned long longPressThreshold = 3000; // 3 seconds for long press
+    
+    bool buttonCurrentlyPressed = (digitalRead(ROTARY_ENCODER_BUTTON_PIN) == LOW); // Assuming active LOW
+    unsigned long currentTime = millis();
+    
+    if (buttonCurrentlyPressed) {
+        if (buttonPressStartTime == 0) {
+            // Button just pressed
+            buttonPressStartTime = currentTime;
+            longPressProcessed = false;
+        } else if (currentTime - buttonPressStartTime >= longPressThreshold && !longPressProcessed && !displayLock) {
+            // Long press detected
+            longPressProcessed = true;
+            manualGrindMode = !manualGrindMode;
+            
+            Serial.print("Long press detected - Manual Grind Mode: ");
+            Serial.println(manualGrindMode ? "ENABLED" : "DISABLED");
+            
+            // Save the setting
+            preferences.begin("scale", false);
+            preferences.putBool("manualGrindMode", manualGrindMode);
+            preferences.end();
+            
+            // Show mode change on display briefly
+            displayLock = true;
+            if (manualGrindMode) {
+                showModeChangeMessage("Manual Mode", "Enabled");
+            } else {
+                showModeChangeMessage("GBW Mode", "Enabled");
+            }
+            
+            // Create task to unlock display after showing message
+            xTaskCreatePinnedToCore(
+                unlockDisplayTask,
+                "ModeChangeDisplayTask",
+                1000,
+                NULL,
+                1,
+                NULL,
+                1
+            );
+        }
+    } else {
+        // Button released
+        if (buttonPressStartTime > 0) {
+            buttonPressStartTime = 0;
+            longPressProcessed = false;
+        }
+    }
+    
     if (rotaryEncoder.encoderChanged())
     {
         // Wake the screen if it's asleep

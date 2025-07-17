@@ -13,3 +13,4 @@ void showDebugMenu();
 void handleDebugMenuAction();
 void showIpAddress();
 void showTaringMessage();
+void showModeChangeMessage(const char* mode, const char* status);

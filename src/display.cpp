@@ -512,6 +512,12 @@ void updateDisplay(void *parameter)
         screen.setCursor(5, 50);
         snprintf(buf2, sizeof(buf2), "Set: %3.1fg", setWeight);
         LeftPrintToScreen(buf2, 50);
+        
+        // Show mode indicator on the right side
+        if (manualGrindMode) {
+          screen.setFont(u8g2_font_6x10_tf);
+          RightPrintToScreen("MANUAL", 50);
+        }
       }
       else if (scaleStatus == STATUS_GRINDING_FAILED)
       {
@@ -601,5 +607,17 @@ void showTaringMessage()
   CenterPrintToScreen("Taring...", 20);         // Print the taring message
   screen.setFont(u8g2_font_7x13_tr);            // Set smaller font
   CenterPrintToScreen("Please wait", 40);       // Print additional message
+  screen.sendBuffer();                          // Send the buffer to the display
+}
+
+// Function to show mode change message
+void showModeChangeMessage(const char* mode, const char* status)
+{
+  screen.clearBuffer();
+  screen.setFontPosTop();
+  screen.setFont(u8g2_font_7x14B_tf);           // Set the font for the message
+  CenterPrintToScreen(mode, 20);                // Print the mode
+  screen.setFont(u8g2_font_7x13_tr);            // Set smaller font
+  CenterPrintToScreen(status, 40);              // Print the status
   screen.sendBuffer();                          // Send the buffer to the display
 }

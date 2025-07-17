@@ -34,6 +34,9 @@ bool useButtonToGrind = DEFAULT_GRIND_TRIGGER_MODE;
 bool showingTaringMessage = false;
 unsigned long taringMessageStartTime = 0;
 
+// Manual grinding mode - grinder controlled directly by button
+bool manualGrindMode = false;
+
 void tareScale()
 {
     Serial.println("Taring scale...");
@@ -117,8 +120,28 @@ void scaleStatusLoop(void *p) {
             
                 static bool grinderButtonPressed = false;
                 static unsigned long grinderButtonPressedAt = 0;
+                static bool manualGrinderActive = false;
             
-                // Only allow button trigger if grindMode == true
+                // Manual grind mode - direct control of grinder with button
+                if (manualGrindMode) {
+                    bool buttonCurrentlyPressed = (digitalRead(GRIND_BUTTON_PIN) == LOW);
+                    
+                    if (buttonCurrentlyPressed && !manualGrinderActive) {
+                        // Button just pressed - start grinder
+                        manualGrinderActive = true;
+                        digitalWrite(GRINDER_ACTIVE_PIN, HIGH); // Turn grinder ON
+                        Serial.println("Manual grind: Grinder ON");
+                        wakeScreen();
+                    } else if (!buttonCurrentlyPressed && manualGrinderActive) {
+                        // Button just released - stop grinder
+                        manualGrinderActive = false;
+                        digitalWrite(GRINDER_ACTIVE_PIN, LOW); // Turn grinder OFF
+                        Serial.println("Manual grind: Grinder OFF");
+                    }
+                    break; // Skip automatic grinding logic when in manual mode
+                }
+            
+                // Only allow button trigger if grindMode == true (automatic mode)
                 if (grindMode && digitalRead(GRIND_BUTTON_PIN) == LOW && !grinderButtonPressed) {
                     grinderButtonPressed = true;
                     grinderButtonPressedAt = millis();
@@ -372,8 +395,10 @@ void setupScale() {
     shotCount = preferences.getUInt("shotCount", 0);
     sleepTime = preferences.getInt("sleepTime", SLEEP_AFTER_MS); // Default to SLEEP_AFTER_MS if not set
     useButtonToGrind = preferences.getBool("grindTrigger", DEFAULT_GRIND_TRIGGER_MODE);
+    manualGrindMode = preferences.getBool("manualGrindMode", false);
     preferences.end();
   Serial.printf("→ scaleFactor = %.0f  |  offset = %.0f\n", scaleFactor, offset);
+  Serial.printf("→ Manual Grind Mode: %s\n", manualGrindMode ? "ENABLED" : "DISABLED");
     loadcell.set_scale(scaleFactor);
     loadcell.set_offset(offset);
 
