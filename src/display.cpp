@@ -267,10 +267,9 @@ void showCalibrationMenu()
   screen.setFont(u8g2_font_7x14B_tf);           // Set the font for the menu title
   CenterPrintToScreen("Calibration", 0);        // Print the menu title
   screen.setFont(u8g2_font_7x13_tr);            // Set the font for the instructions
-  CenterPrintToScreen("1. Remove all weight", 15);
-  CenterPrintToScreen("2. Scale will tare", 28);
-  CenterPrintToScreen("3. Place 100g weight", 41);
-  CenterPrintToScreen("4. Press button", 54);
+  CenterPrintToScreen("Place 100g weight", 19); // Print instructions
+  CenterPrintToScreen("on scale and", 35);      // Print instructions
+  CenterPrintToScreen("press button", 51);      // Print instructions
   screen.sendBuffer();                          // Send the buffer to the display
 }
 

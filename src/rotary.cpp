@@ -266,25 +266,13 @@ void rotary_onButtonClick()
             delay(500); // Allow stabilization
             double rawReading = loadcell.get_units(10); // Take 10 readings for accuracy
             
-            // Validate the raw reading before proceeding
-            if (abs(rawReading) < 1000 || abs(rawReading) > 1000000) {
-                Serial.printf("Error: Invalid raw reading (%.2f). Calibration aborted.\n", rawReading);
-                // Restore previous calibration factor
-                preferences.begin("scale", false);
-                double previousCalibration = preferences.getDouble("calibration", (double)LOADCELL_SCALE_FACTOR);
-                preferences.end();
-                loadcell.set_scale(previousCalibration);
-                scaleStatus = STATUS_IN_MENU;
-                currentSetting = -1;
-                break;
-            }
-            
             // Calculate the correct calibration factor: rawReading / knownWeight
             double newCalibrationValue = rawReading / 100.0; // 100g known weight
             
-            // Additional sanity check on the calculated calibration factor
-            if (abs(newCalibrationValue) < 100 || abs(newCalibrationValue) > 10000) {
-                Serial.printf("Error: Calculated calibration factor (%.2f) is out of reasonable range. Using default.\n", newCalibrationValue);
+            // Basic validation - ensure we got a reasonable reading
+            if (abs(rawReading) < 1000 || abs(newCalibrationValue) < 100 || abs(newCalibrationValue) > 10000) {
+                Serial.printf("Error: Invalid calibration values (raw: %.2f, factor: %.2f). Using default.\n", 
+                             rawReading, newCalibrationValue);
                 newCalibrationValue = (double)LOADCELL_SCALE_FACTOR;
             }
             
@@ -416,21 +404,8 @@ void rotary_onButtonClick()
 // Handles rotary encoder input for menu navigation and adjustments
 void rotary_loop()
 {
-    // Simplified debug output - less verbose
-    static unsigned long lastDebugTime = 0;
-    if (millis() - lastDebugTime > 10000) { // Every 10 seconds
-        int currentValue = rotaryEncoder.readEncoder();
-        Serial.print("Encoder value: ");
-        Serial.println(currentValue);
-        lastDebugTime = millis();
-    }
-    
     if (rotaryEncoder.encoderChanged())
     {
-        int currentValue = rotaryEncoder.readEncoder();
-        Serial.print("Encoder changed to: ");
-        Serial.println(currentValue);
-        
         // Wake the screen if it's asleep
         if (millis() - lastSignificantWeightChangeAt > sleepTime)
         {
