@@ -26,9 +26,6 @@ class MenuItem
         double increment;
         double *value;
 };
-// Debug mode toggle
-#define DEBUG_MODE false;
-extern bool debugMode;
 
 //Set your sleep variable
 #define SLEEP_AFTER_MS 60000
@@ -99,8 +96,6 @@ extern int currentSetting;
 extern int sleepTime;
 extern bool screenJustWoke;
 extern unsigned int shotCount;
-extern int debugMenuItemsCount;
-extern int currentDebugMenuItem;
 extern bool useButtonToGrind;
 extern bool showingTaringMessage;
 extern unsigned long taringMessageStartTime;

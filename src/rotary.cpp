@@ -52,7 +52,6 @@ void exitToMenu()
     }
 }
 
-bool debugMode = DEBUG_MODE;
 // Handles button clicks on the rotary encoder
 
 // Task function to unlock display after taring
@@ -60,8 +59,6 @@ static void unlockDisplayTask(void *param) {
     delay(2000); // Wait 2 seconds
     displayLock = false;
     showingTaringMessage = false;
-    Serial.println("Display unlocked by task");
-    Serial.println("Taring sequence completed - system should be responsive now");
     vTaskDelete(NULL);
 }
 
@@ -69,7 +66,6 @@ void rotary_onButtonClick()
 {
     // Don't process button clicks while display is locked
     if (displayLock) {
-        Serial.println("Button click ignored - display locked");
         return;
     }
     
@@ -78,7 +74,7 @@ void rotary_onButtonClick()
     const unsigned long clickDelay = 300;          // Delay to differentiate single vs double click (in ms)
     static bool menuPending = false;               // Flag to track if a single click action is pending
 
-    // Handle rapid clicks for debug mode
+    // Handle rapid clicks for double-click detection
     if (currentTime - lastTimePressed < clickThreshold)
     {
         clickCount++;
@@ -106,14 +102,11 @@ void rotary_onButtonClick()
         }
         
         // Show taring message on display (non-blocking)
-        Serial.println("Setting up taring display...");
         displayLock = true;
         showTaringMessage();
         
         // Perform the tare operation
-        Serial.println("Starting tare operation...");
         tareScale();
-        Serial.println("Tare completed");
         
         // Use a task to unlock the display after a delay instead of relying on rotary_loop
         xTaskCreatePinnedToCore(
@@ -127,20 +120,6 @@ void rotary_onButtonClick()
         );
         
         return;
-    }
-
-    // Check for 4 rapid clicks to toggle debug mode
-    if (clickCount >= 4)
-    {
-        debugMode = !debugMode; // Toggle debug mode
-        Serial.print("Debug Mode: ");
-        Serial.println(debugMode ? "Enabled" : "Disabled");
-
-        // Use the display method from display.cpp
-        showDebugModeStatus(debugMode);
-        menuItemsCount = debugMode ? 10 : 9;
-        clickCount = 0; // Reset the click count
-        return;         // Exit early to prevent other actions
     }
 
     // Delay single click action to allow for double-click detection
@@ -240,14 +219,6 @@ void rotary_onButtonClick()
             scaleStatus = STATUS_IN_SUBMENU;
             currentSetting = 6;
             Serial.println("Reset Menu");
-            break;
-        case 9: // Debug Menu
-            if (debugMode)
-            {
-                scaleStatus = STATUS_IN_SUBMENU;
-                currentSetting = 9; // Identifier for Debug Menu
-                Serial.println("Entering Debug Menu");
-            }
             break;
         }
     }
@@ -386,42 +357,6 @@ void rotary_onButtonClick()
             Serial.println(useButtonToGrind ? "Button" : "Cup");
             scaleStatus = STATUS_IN_MENU;
             currentSetting = -1;
-            break;
-        }
-        case 9: // Debug Menu
-        {
-            int newValue = rotaryEncoder.readEncoder();
-            int debugOption = (newValue - encoderValue) % 3;               // Cycle through options
-            debugOption = debugOption < 0 ? 3 + debugOption : debugOption; // Wrap negative values
-            encoderValue = newValue;
-
-            if (rotaryEncoder.isEncoderButtonClicked())
-            {
-                switch (debugOption)
-                {
-                case 0: // Simulate Grinding
-                    Serial.println("Simulating Grinding...");
-                    scaleStatus = STATUS_GRINDING_IN_PROGRESS;
-                    startedGrindingAt = millis();
-                    setWeight = 20.0;     // Example weight
-                    cupWeightEmpty = 5.0; // Example cup weight
-                    break;
-
-                case 1: // Show Weight History
-                    Serial.println("Displaying Weight History...");
-                    // Add logic to display weight history
-                    break;
-
-                case 2: // Reset Shot Count
-                    Serial.println("Resetting Shot Count...");
-                    shotCount = 0;
-                    preferences.begin("scale", false);
-                    preferences.putUInt("shotCount", shotCount);
-                    preferences.end();
-                    break;
-                }
-            }
-            exitToMenu();
             break;
         }
         }
@@ -594,19 +529,6 @@ void rotary_loop()
             {
                 useButtonToGrind = !useButtonToGrind;
             }
-            else if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
-            {
-                int newValue = rotaryEncoder.readEncoder();
-                int encoderDelta = newValue - encoderValue;
-                
-                if (encoderDelta != 0) {
-                    int menuDirection = (encoderDelta > 0 ? 1 : -1) * encoderDir;
-                    currentDebugMenuItem = (currentDebugMenuItem + menuDirection) % debugMenuItemsCount;
-                    currentDebugMenuItem = currentDebugMenuItem < 0 ? debugMenuItemsCount + currentDebugMenuItem : currentDebugMenuItem;
-                    encoderValue = newValue;
-                    showDebugMenu(); // Update the Debug Menu display
-                }
-            }
             break;
         }
         case STATUS_GRINDING_FAILED:
@@ -620,11 +542,8 @@ void rotary_loop()
     }
     if (rotaryEncoder.isEncoderButtonClicked())
     {
-        Serial.println("Encoder button clicked!");
-        
         // Don't process button clicks while display is locked
         if (displayLock) {
-            Serial.println("Button click ignored - display locked");
             return;
         }
         
@@ -636,14 +555,7 @@ void rotary_loop()
             return; // Exit early to prevent other button actions while waking
         }
         
-        if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
-        {
-            handleDebugMenuAction(); // Perform the selected debug menu action
-        }
-        else
-        {
-            rotary_onButtonClick(); // Existing button click handling
-        }
+        rotary_onButtonClick(); // Existing button click handling
     }
 }
 
