@@ -37,8 +37,12 @@ unsigned long taringMessageStartTime = 0;
 void tareScale()
 {
     Serial.println("Taring scale...");
-    loadcell.tare(TARE_MEASURES); // Perform the tare operation
-    delay(500);                   // Allow the load cell to stabilize
+    // Use set_offset instead of tare() to avoid blocking
+    // Get current reading and set it as the new offset
+    if (loadcell.wait_ready_timeout(100)) {
+        long currentReading = loadcell.read_average(1); // Just 1 quick reading
+        loadcell.set_offset(currentReading);
+    }
     lastTareAt = millis();        // Update the timestamp
     scaleWeight = 0;              // Reset the displayed weight
     Serial.println("Scale tared successfully");
@@ -102,7 +106,12 @@ void scaleStatusLoop(void *p) {
 
         switch (scaleStatus) {
             case STATUS_EMPTY: {
-                if (millis() - lastTareAt > TARE_MIN_INTERVAL && ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
+                // Only auto-tare if it's been a while since last tare AND weight conditions suggest it's needed
+                // Don't auto-tare if we just manually tared (within 30 seconds)
+                if (millis() - lastTareAt > TARE_MIN_INTERVAL && 
+                    millis() - lastTareAt > 30000 &&  // Wait at least 30 seconds after manual tare
+                    ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
+                    Serial.println("Auto-tare conditions met, scheduling retare");
                     lastTareAt = 0; // Retare if conditions are met
                 }
             
@@ -150,14 +159,6 @@ void scaleStatusLoop(void *p) {
             }            
         case STATUS_GRINDING_IN_PROGRESS:
         {
-            // Debug: Print current state at start of each loop
-            static unsigned long lastDebugPrint = 0;
-            if (millis() - lastDebugPrint > 500) { // Print every 500ms
-                Serial.printf("GRINDING DEBUG: scaleWeight=%.2f, cupWeightEmpty=%.2f, scaleReady=%d, startedGrindingAt=%lu, elapsed=%lu\n", 
-                             scaleWeight, cupWeightEmpty, scaleReady, startedGrindingAt, millis() - startedGrindingAt);
-                lastDebugPrint = millis();
-            }
-            
             if (scaleWeight < -10.0)
             { // Only fail if weight is significantly negative (cup removed)
                 Serial.println("GRINDING FAILED: Significantly negative weight detected (cup removed).");

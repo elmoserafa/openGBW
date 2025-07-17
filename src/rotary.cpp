@@ -55,10 +55,21 @@ void exitToMenu()
 bool debugMode = DEBUG_MODE;
 // Handles button clicks on the rotary encoder
 
+// Task function to unlock display after taring
+static void unlockDisplayTask(void *param) {
+    delay(2000); // Wait 2 seconds
+    displayLock = false;
+    showingTaringMessage = false;
+    Serial.println("Display unlocked by task");
+    Serial.println("Taring sequence completed - system should be responsive now");
+    vTaskDelete(NULL);
+}
+
 void rotary_onButtonClick()
 {
-    // Don't process button clicks while showing taring message
-    if (showingTaringMessage) {
+    // Don't process button clicks while display is locked
+    if (displayLock) {
+        Serial.println("Button click ignored - display locked");
         return;
     }
     
@@ -96,13 +107,25 @@ void rotary_onButtonClick()
         }
         
         // Show taring message on display (non-blocking)
+        Serial.println("Setting up taring display...");
         displayLock = true;
         showTaringMessage();
-        showingTaringMessage = true;
-        taringMessageStartTime = millis();
         
         // Perform the tare operation
+        Serial.println("Starting tare operation...");
         tareScale();
+        Serial.println("Tare completed");
+        
+        // Use a task to unlock the display after a delay instead of relying on rotary_loop
+        xTaskCreatePinnedToCore(
+            unlockDisplayTask,
+            "UnlockDisplayTask",
+            1000,
+            NULL,
+            1,
+            NULL,
+            1
+        );
         
         return;
     }
@@ -409,13 +432,6 @@ void rotary_onButtonClick()
 // Handles rotary encoder input for menu navigation and adjustments
 void rotary_loop()
 {
-    // Check if we need to stop showing the taring message
-    if (showingTaringMessage && (millis() - taringMessageStartTime >= 2000)) {
-        showingTaringMessage = false;
-        displayLock = false;
-        Serial.println("Taring message completed, display unlocked");
-    }
-    
     if (rotaryEncoder.encoderChanged())
     {
         // Wake the screen if it's asleep
@@ -554,8 +570,9 @@ void rotary_loop()
     {
         Serial.println("Encoder button clicked!");
         
-        // Don't process button clicks while showing taring message
-        if (showingTaringMessage) {
+        // Don't process button clicks while display is locked
+        if (displayLock) {
+            Serial.println("Button click ignored - display locked");
             return;
         }
         
