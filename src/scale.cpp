@@ -150,23 +150,34 @@ void scaleStatusLoop(void *p) {
             }            
         case STATUS_GRINDING_IN_PROGRESS:
         {
-            if (scaleWeight <= 0)
-            { // Avoid restarting grinding with zero or negative weight
-                Serial.println("Negative or zero weight detected. Skipping grinding.");
+            // Debug: Print current state at start of each loop
+            static unsigned long lastDebugPrint = 0;
+            if (millis() - lastDebugPrint > 500) { // Print every 500ms
+                Serial.printf("GRINDING DEBUG: scaleWeight=%.2f, cupWeightEmpty=%.2f, scaleReady=%d, startedGrindingAt=%lu, elapsed=%lu\n", 
+                             scaleWeight, cupWeightEmpty, scaleReady, startedGrindingAt, millis() - startedGrindingAt);
+                lastDebugPrint = millis();
+            }
+            
+            if (scaleWeight < -10.0)
+            { // Only fail if weight is significantly negative (cup removed)
+                Serial.println("GRINDING FAILED: Significantly negative weight detected (cup removed).");
                 grinderToggle(); // Ensure grinder is off
                 scaleStatus = STATUS_GRINDING_FAILED;
                 continue;
             }
             if (!scaleReady)
             {
+                Serial.println("GRINDING FAILED: Scale not ready");
                 grinderToggle();
                 scaleStatus = STATUS_GRINDING_FAILED;
+                continue;
             }
                 if (scaleMode && startedGrindingAt == 0 && scaleWeight - cupWeightEmpty >= 0.1) {
                 startedGrindingAt = millis();
                 continue;
             }
                 if (millis() - startedGrindingAt > MAX_GRINDING_TIME && !scaleMode) {
+                Serial.println("GRINDING FAILED: Max grinding time exceeded");
                 grinderToggle();
                 scaleStatus = STATUS_GRINDING_FAILED;
                 continue;
@@ -174,11 +185,14 @@ void scaleStatusLoop(void *p) {
             if (millis() - startedGrindingAt > 2000 &&
                 scaleWeight - weightHistory.firstValueOlderThan(millis() - 2000) < 1 &&
                     !scaleMode) {
+                Serial.println("GRINDING FAILED: No weight increase after 2 seconds");
                 grinderToggle();
                 scaleStatus = STATUS_GRINDING_FAILED;
                 continue;
             }
                 if (weightHistory.minSince((int64_t)millis() - 200) < cupWeightEmpty - CUP_DETECTION_TOLERANCE && !scaleMode) {
+                Serial.printf("GRINDING FAILED: Cup removed - min weight: %.2f, cup weight: %.2f, tolerance: %d\n", 
+                             weightHistory.minSince((int64_t)millis() - 200), cupWeightEmpty, CUP_DETECTION_TOLERANCE);
                 grinderToggle();
                 scaleStatus = STATUS_GRINDING_FAILED;
                 continue;
