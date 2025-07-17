@@ -30,6 +30,10 @@ bool newOffset = false;       // Indicates if a new offset value is pending
 
 bool useButtonToGrind = DEFAULT_GRIND_TRIGGER_MODE;
 
+// Taring message state variables
+bool showingTaringMessage = false;
+unsigned long taringMessageStartTime = 0;
+
 void tareScale()
 {
     Serial.println("Taring scale...");

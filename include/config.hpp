@@ -101,3 +101,5 @@ extern unsigned int shotCount;
 extern int debugMenuItemsCount;
 extern int currentDebugMenuItem;
 extern bool useButtonToGrind;
+extern bool showingTaringMessage;
+extern unsigned long taringMessageStartTime;

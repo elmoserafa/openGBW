@@ -591,3 +591,15 @@ void setupDisplay()
       &DisplayTask,  /* Task handle */
       1);            /* Core where the task should run */
 }
+
+// Function to show taring message
+void showTaringMessage()
+{
+  screen.clearBuffer();
+  screen.setFontPosTop();
+  screen.setFont(u8g2_font_7x14B_tf);           // Set the font for the message
+  CenterPrintToScreen("Taring...", 20);         // Print the taring message
+  screen.setFont(u8g2_font_7x13_tr);            // Set smaller font
+  CenterPrintToScreen("Please wait", 40);       // Print additional message
+  screen.sendBuffer();                          // Send the buffer to the display
+}

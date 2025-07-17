@@ -57,6 +57,11 @@ bool debugMode = DEBUG_MODE;
 
 void rotary_onButtonClick()
 {
+    // Don't process button clicks while showing taring message
+    if (showingTaringMessage) {
+        return;
+    }
+    
     unsigned long currentTime = millis();
     static unsigned long lastTimePressed = 0;      // Timestamp of the last button press
     static int clickCount = 0;                     // Number of clicks
@@ -78,7 +83,25 @@ void rotary_onButtonClick()
     {
         menuPending = false; // Cancel pending single click action
         Serial.println("Double press detected. Taring scale...");
-        tareScale();    // Call the tare function
+        
+        // Exit menu if we're in any menu state
+        if (scaleStatus == STATUS_IN_MENU || scaleStatus == STATUS_IN_SUBMENU) {
+            scaleStatus = STATUS_EMPTY;
+            currentMenuItem = 0;
+            currentSetting = -1;
+            rotaryEncoder.setAcceleration(100); // Restore encoder acceleration
+            Serial.println("Exited menu due to tare operation");
+        }
+        
+        // Show taring message on display (non-blocking)
+        displayLock = true;
+        showTaringMessage();
+        showingTaringMessage = true;
+        taringMessageStartTime = millis();
+        
+        // Perform the tare operation
+        tareScale();
+        
         clickCount = 0; // Reset click count
         return;
     }
@@ -405,6 +428,13 @@ void rotary_onButtonClick()
 // Handles rotary encoder input for menu navigation and adjustments
 void rotary_loop()
 {
+    // Check if we need to stop showing the taring message
+    if (showingTaringMessage && (millis() - taringMessageStartTime >= 2000)) {
+        showingTaringMessage = false;
+        displayLock = false;
+        Serial.println("Taring message completed, display unlocked");
+    }
+    
     if (rotaryEncoder.encoderChanged())
     {
         // Wake the screen if it's asleep
@@ -542,6 +572,11 @@ void rotary_loop()
     if (rotaryEncoder.isEncoderButtonClicked())
     {
         Serial.println("Encoder button clicked!");
+        
+        // Don't process button clicks while showing taring message
+        if (showingTaringMessage) {
+            return;
+        }
         
         // Wake the screen if it's asleep
         if (millis() - lastSignificantWeightChangeAt > sleepTime)
