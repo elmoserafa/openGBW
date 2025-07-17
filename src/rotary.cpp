@@ -64,7 +64,6 @@ void rotary_onButtonClick()
     
     unsigned long currentTime = millis();
     static unsigned long lastTimePressed = 0;      // Timestamp of the last button press
-    static int clickCount = 0;                     // Number of clicks
     const unsigned long clickDelay = 300;          // Delay to differentiate single vs double click (in ms)
     const unsigned long longPressThreshold = 3000; // Threshold for long press (in ms)
     static bool menuPending = false;               // Flag to track if a single click action is pending
@@ -84,6 +83,9 @@ void rotary_onButtonClick()
         menuPending = false; // Cancel pending single click action
         Serial.println("Double press detected. Taring scale...");
         
+        // Reset click count immediately to prevent loops
+        clickCount = 0;
+        
         // Exit menu if we're in any menu state
         if (scaleStatus == STATUS_IN_MENU || scaleStatus == STATUS_IN_SUBMENU) {
             scaleStatus = STATUS_EMPTY;
@@ -102,7 +104,6 @@ void rotary_onButtonClick()
         // Perform the tare operation
         tareScale();
         
-        clickCount = 0; // Reset click count
         return;
     }
 
@@ -137,27 +138,7 @@ void rotary_onButtonClick()
         );
     }
 
-    if (rotaryEncoder.isEncoderButtonClicked())
-    {
-        // Wake the screen if it's asleep
-        if (millis() - lastSignificantWeightChangeAt > sleepTime)
-        {
-            Serial.println("Screen waking due to button press...");
-            wakeScreen();
-            return; // Exit early to prevent other button actions while waking
-        }
-        
-        if (lastTimePressed == 0)
-        {
-            lastTimePressed = currentTime; // Record the time of the initial button press
-        }
-        // Reset pending flag if necessary
-        if (scaleStatus == STATUS_EMPTY || scaleStatus == STATUS_IN_MENU)
-        {
-            menuPending = false; // Ensure no delayed action interferes
-        }
-    }
-
+    // Process menu navigation based on current state
     if (scaleStatus == STATUS_EMPTY)
     {
         // Enter the menu when the scale is empty
