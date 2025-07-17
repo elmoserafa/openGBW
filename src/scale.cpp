@@ -230,16 +230,38 @@ void scaleStatusLoop(void *p) {
                 scaleWeight = 0;
                 scaleStatus = STATUS_EMPTY;
                 continue;
-                } else if (currentWeight != setWeight + cupWeightEmpty && millis() - finishedGrindingAt > 1500 && newOffset) {
-                offset += setWeight + cupWeightEmpty - currentWeight;
-                    if (ABS(offset) >= setWeight) {
-                    offset = COFFEE_DOSE_OFFSET;
+                } else if (millis() - finishedGrindingAt > 2000 && newOffset && AUTO_OFFSET_ADJUSTMENT) {
+                // Wait 2 seconds for all coffee to settle, then auto-adjust offset
+                double targetTotalWeight = setWeight + cupWeightEmpty;
+                double actualWeight = currentWeight;
+                double weightError = targetTotalWeight - actualWeight;
+                
+                if (ABS(weightError) > 0.3) { // Only adjust if error is significant (>0.3g)
+                    double oldOffset = offset;
+                    offset += weightError;
+                    
+                    // Constrain offset to reasonable limits
+                    if (offset > 5.0) offset = 5.0;
+                    if (offset < -5.0) offset = -5.0;
+                    
+                    Serial.printf("AUTO OFFSET ADJUSTMENT:\n");
+                    Serial.printf("  Target: %.1fg, Actual: %.1fg, Error: %.1fg\n", 
+                                 targetTotalWeight, actualWeight, weightError);
+                    Serial.printf("  Old offset: %.2fg -> New offset: %.2fg\n", 
+                                 oldOffset, offset);
+                    
+                    shotCount++;
+                    preferences.begin("scale", false);
+                    preferences.putDouble("offset", offset);
+                    preferences.putUInt("shotCount", shotCount);
+                    preferences.end();
+                } else {
+                    Serial.printf("Grinding accuracy good (error: %.1fg) - no offset adjustment needed\n", weightError);
+                    shotCount++;
+                    preferences.begin("scale", false);
+                    preferences.putUInt("shotCount", shotCount);
+                    preferences.end();
                 }
-                shotCount++;
-                preferences.begin("scale", false);
-                preferences.putDouble("offset", offset);
-                preferences.putUInt("shotCount", shotCount);
-                preferences.end();
                 newOffset = false;
             }
 

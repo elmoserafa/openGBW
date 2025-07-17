@@ -61,6 +61,7 @@ extern bool debugMode;
 
 #define GRIND_BUTTON_PIN 25
 #define DEFAULT_GRIND_TRIGGER_MODE true  // true = use button, false = cup detection
+#define AUTO_OFFSET_ADJUSTMENT true     // Enable automatic offset adjustment after grinding
 
 #define TARE_MIN_INTERVAL 10 * 1000 // auto-tare at most once every 10 seconds
 
