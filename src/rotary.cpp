@@ -197,10 +197,10 @@ void rotary_onButtonClick()
             currentSetting = 5;
             Serial.println("Info Menu");
             break;
-        case 6: // Sleep Timer Menu
+        case 6: // Grind Trigger Menu
             scaleStatus = STATUS_IN_SUBMENU;
-            currentSetting = 8;
-            Serial.println("Sleep Timer Menu");
+            currentSetting = 8; // Use setting 8 for grind trigger
+            Serial.println("Grind Trigger Menu");
             break;
         case 7:                                 // Exit
             menuPending = false;                // Reset pending flag
@@ -352,13 +352,14 @@ void rotary_onButtonClick()
         }
         case 8: // Grind Trigger Menu
         {
-            useButtonToGrind = !useButtonToGrind;
+            // Save the current selection and exit
             preferences.begin("scale", false);
             preferences.putBool("grindTrigger", useButtonToGrind);
             preferences.end();
-            Serial.print("Grind Trigger Mode changed to: ");
+            Serial.print("Grind Trigger Mode set to: ");
             Serial.println(useButtonToGrind ? "Button" : "Cup");
-            exitToMenu();
+            scaleStatus = STATUS_IN_MENU;
+            currentSetting = -1;
             break;
         }
         case 9: // Debug Menu
@@ -510,27 +511,9 @@ void rotary_loop()
             {
                 greset = !greset;
             }
-            else if (currentSetting == 8 && encoderDelta != 0)
-            {                                                  // Sleep Timer menu
-                sleepTime += encoderDelta * 1000 * encoderDir; // Adjust by seconds, apply direction
-                if (sleepTime < 5000)
-                {
-                    sleepTime = 5000; // Minimum sleep time: 5 seconds
-                }
-                if (sleepTime > 600000)
-                {
-                    sleepTime = 600000; // Maximum sleep time: 10 minutes
-                }
-                encoderValue = newValue;
-
-                // Save the updated sleep time to preferences
-                preferences.begin("scale", false);
-                preferences.putInt("sleepTime", sleepTime);
-                preferences.end();
-                
-                Serial.print("Sleep time adjusted to: ");
-                Serial.print(sleepTime / 1000);
-                Serial.println(" seconds");
+            else if (currentSetting == 8) // Grind Trigger Menu - selector style
+            {
+                useButtonToGrind = !useButtonToGrind;
             }
             else if (scaleStatus == STATUS_IN_SUBMENU && currentSetting == 9) // Debug Menu
             {
