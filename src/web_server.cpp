@@ -75,44 +75,6 @@ void handleWiFiConfig(AsyncWebServerRequest *request) {
     }
 }
 
-void setupWebServer() {
-    Serial.println("Starting Web Server...");
-    connectToWiFi();
-
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-        request->send(200, "text/html",
-            "<html><head><meta name='viewport' content='width=device-width, initial-scale=1'>"
-            "<style>"
-            "body { font-family: Arial, sans-serif; text-align: center; background-color: #1c1c1c; color: white; }"
-            ".container { max-width: 400px; margin: auto; background: #2a2a2a; padding: 20px; border-radius: 10px; }"
-            "input, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: none; }"
-            "input { background: #333; color: white; }"
-            "button { background: #28a745; color: white; cursor: pointer; }"
-            "button:hover { background: #218838; }"
-            "</style></head><body>"
-            "<div class='container'><h2>Wi-Fi Setup</h2>"
-            "<form action='/save' method='GET'>"
-            "<label>SSID:</label><input name='ssid'><br>"
-            "<label>Password:</label><input name='pass' type='password'><br>"
-            "<button type='submit'>Save</button>"
-            "</form></div></body></html>");
-    });
-
-    server.on("/resetWifi", HTTP_GET, [](AsyncWebServerRequest *request) {
-        Serial.println("Resetting WiFi credentials...");
-        preferences.begin("wifi", false);
-        preferences.remove("wifi_ssid");
-        preferences.remove("wifi_pass");
-        preferences.end();
-        
-        Serial.println("WiFi credentials erased. Rebooting in 5 seconds...");
-        request->send(200, "text/plain", "WiFi credentials ERASED. Rebooting...");        
-        delay(5000);
-        ESP.restart();
-    });
-
-    server.on("/save", HTTP_GET, handleWiFiConfig);
-
-    server.begin();
-    Serial.println("Web Server Started.");
-}
+// void setupWebServer() {
+//     // Web server disabled
+// }

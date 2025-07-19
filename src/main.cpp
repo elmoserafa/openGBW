@@ -24,7 +24,7 @@ void setup() {
     // Setup other components
     setupDisplay();
     setupScale();
-    setupWebServer();
+    // setupWebServer(); // Disabled
 }
 
 void loop() {

@@ -373,7 +373,8 @@ void setupScale() {
     Serial.println("Rotary encoder initialized successfully.");
     
     Serial.println("Initializing load cell...");
-    loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN);
+    // Set HX711 to 3.33Hz (low speed) mode
+    loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN, true); // third param true = low speed (3.33Hz)
     pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
     pinMode(GRIND_BUTTON_PIN, INPUT_PULLUP);
     digitalWrite(GRINDER_ACTIVE_PIN, 0); // Initialize LOW = NPN OFF = Grinder 5V signal HIGH = Grinder stopped
