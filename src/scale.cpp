@@ -64,6 +64,7 @@ bool tareScale()
 // Task to continuously update the scale readings
 void updateScale(void *parameter) {
     float lastEstimate;
+    const TickType_t xDelay = 100 / portTICK_PERIOD_MS; // 10Hz = 100ms interval
     for (;;) {
         if (lastTareAt == 0) {
             Serial.println("retaring scale");
@@ -75,7 +76,7 @@ void updateScale(void *parameter) {
             long raw = loadcell.read_average(5);
             double grams = (double)(raw - loadcell.get_offset()) / scaleFactor;
             scaleWeight = kalmanFilter.updateEstimate(grams);
-            // Serial.printf("Scale reading: %.2f g\n", scaleWeight);
+            Serial.printf("HX711 raw: %ld, offset: %ld, grams: %.2f, filtered: %.2f\n", raw, loadcell.get_offset(), grams, scaleWeight);
             if (ABS(scaleWeight) < 3) {
                 scaleWeight = 0;
             }
@@ -86,6 +87,7 @@ void updateScale(void *parameter) {
             Serial.println("HX711 not found.");
             scaleReady = false;
         }
+        vTaskDelay(xDelay); // Wait 100ms before next read (10Hz)
     }
 }
 
