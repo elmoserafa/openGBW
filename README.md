@@ -81,8 +81,8 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 | white  | A-  | |
 |   | VCC  | VCC/3.3 |
 |   | GND  | GND |
-|   | SCK  | GPIO 18 |
-|   | DT  | GPIO 19 |
+|   | SCK  | GPIO 17/TX2|
+|   | DT  | GPIO 16/RX2| 
 
 #### Display
 
