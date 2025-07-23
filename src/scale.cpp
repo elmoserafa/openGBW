@@ -119,23 +119,14 @@ void scaleStatusLoop(void *p) {
 
         switch (scaleStatus) {
             case STATUS_EMPTY: {
-                // Only auto-tare if it's been a while since last tare AND weight conditions suggest it's needed
-                // Don't auto-tare if we just manually tared (within 30 seconds)
-                if (millis() - lastTareAt > TARE_MIN_INTERVAL && 
-                    millis() - lastTareAt > 30000 &&  // Wait at least 30 seconds after manual tare
-                    ABS(tenSecAvg) > 0.2 && tenSecAvg < 3 && scaleWeight < 3) {
-                    Serial.println("Auto-tare conditions met, scheduling retare");
-                    lastTareAt = 0; // Retare if conditions are met
-                }
-            
+                // Auto-tare is disabled except for startup (handled in updateScale)
                 static bool grinderButtonPressed = false;
                 static unsigned long grinderButtonPressedAt = 0;
                 static bool manualGrinderActive = false;
-            
+
                 // Manual grind mode - direct control of grinder with button
                 if (manualGrindMode) {
                     bool buttonCurrentlyPressed = (digitalRead(GRIND_BUTTON_PIN) == LOW);
-                    
                     if (buttonCurrentlyPressed && !manualGrinderActive) {
                         // Button just pressed - start grinder
                         manualGrinderActive = true;
@@ -150,7 +141,7 @@ void scaleStatusLoop(void *p) {
                     }
                     break; // Skip automatic grinding logic when in manual mode
                 }
-            
+
                 // Only allow button trigger if grindMode == true (automatic mode)
                 if (grindMode && digitalRead(GRIND_BUTTON_PIN) == LOW && !grinderButtonPressed) {
                     grinderButtonPressed = true;

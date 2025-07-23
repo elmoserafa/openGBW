@@ -219,8 +219,17 @@ void rotary_onButtonClick()
                 preferences.begin("scale", false);
                 preferences.putBool("manualGrindMode", manualGrindMode);
                 preferences.end();
+                displayLock = true;
                 showModeChangeMessage("GBW", "Selected");
-                delay(1000);
+                xTaskCreatePinnedToCore(
+                    unlockDisplayTask,
+                    "ModeChangeDisplayTask",
+                    1000,
+                    NULL,
+                    1,
+                    NULL,
+                    1
+                );
                 currentSubmenu = 0; // Return to main menu
                 currentMenuItem = 0;
                 Serial.println("GBW mode selected");
@@ -230,8 +239,17 @@ void rotary_onButtonClick()
                 preferences.begin("scale", false);
                 preferences.putBool("manualGrindMode", manualGrindMode);
                 preferences.end();
+                displayLock = true;
                 showModeChangeMessage("Manual", "Selected");
-                delay(1000);
+                xTaskCreatePinnedToCore(
+                    unlockDisplayTask,
+                    "ModeChangeDisplayTask",
+                    1000,
+                    NULL,
+                    1,
+                    NULL,
+                    1
+                );
                 currentSubmenu = 0; // Return to main menu
                 currentMenuItem = 0;
                 Serial.println("Manual mode selected");
