@@ -1,3 +1,4 @@
+void showErrorMessage(const char* message);
 #pragma once
 
 #include "config.hpp"

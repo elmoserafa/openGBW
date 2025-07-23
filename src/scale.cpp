@@ -39,18 +39,26 @@ bool manualGrindMode = false;
 
 double scaleFactor = 1409.88; // Standard scale factor, can be updated by calibration
 
-void tareScale()
+bool tareScale()
 {
     Serial.println("Taring scale (non-blocking)...");
-    if (loadcell.wait_ready_timeout(500)) {
-        long offset = loadcell.read_average(10); // Average 10 readings for stability
-        loadcell.set_offset(offset);
-        lastTareAt = millis();
-        scaleWeight = 0;
-        Serial.println("Scale tared successfully");
-    } else {
-        Serial.println("Tare failed: HX711 not ready.");
+    for (int attempt = 1; attempt <= 3; ++attempt) {
+        if (loadcell.wait_ready_timeout(1000)) {
+            long offset = loadcell.read_average(10); // Average 10 readings for stability
+            loadcell.set_offset(offset);
+            lastTareAt = millis();
+            scaleWeight = 0;
+            Serial.println("Scale tared successfully");
+            return true;
+        } else {
+            Serial.print("Tare attempt ");
+            Serial.print(attempt);
+            Serial.println(": HX711 not ready, retrying...");
+            delay(200);
+        }
     }
+    Serial.println("Tare failed: HX711 not ready after retries.");
+    return false;
 }
 
 // Task to continuously update the scale readings

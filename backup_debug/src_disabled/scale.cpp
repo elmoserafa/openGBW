@@ -39,21 +39,38 @@ bool manualGrindMode = false;
 
 void tareScale()
 {
-    Serial.println("Taring scale...");
+    Serial.println("Taring scale (HX711)...");
     // Use set_offset instead of tare() to avoid blocking
     // Get current reading and set it as the new offset
-    if (loadcell.wait_ready_timeout(100)) {
-        long currentReading = loadcell.read_average(1); // Just 1 quick reading
-        loadcell.set_offset(currentReading);
+    bool tared = false;
+    for (int attempt = 1; attempt <= 3; ++attempt) {
+        Serial.print("HX711 tare attempt "); Serial.println(attempt);
+        if (loadcell.wait_ready_timeout(2000)) {
+            Serial.println("HX711 ready for tare.");
+            long currentReading = loadcell.read_average(10); // average 10 readings
+            Serial.print("HX711 tare average (10 readings): "); Serial.println(currentReading);
+            loadcell.set_offset(currentReading);
+            Serial.println("HX711 offset set.");
+            tared = true;
+            break;
+        } else {
+            Serial.println("HX711 not ready for tare.");
+            delay(200); // Wait a bit before retrying
+        }
     }
-    lastTareAt = millis();        // Update the timestamp
-    scaleWeight = 0;              // Reset the displayed weight
-    Serial.println("Scale tared successfully");
+    if (tared) {
+        lastTareAt = millis();        // Update the timestamp
+        scaleWeight = 0;              // Reset the displayed weight
+        Serial.println("Scale tared successfully");
+    } else {
+        Serial.println("Tare failed: HX711 not ready after 3 attempts.");
+    }
 }
 
 // Task to continuously update the scale readings
 void updateScale(void *parameter) {
     float lastEstimate;
+    Serial.println("updateScale task started");
     for (;;) {
         if (lastTareAt == 0) {
             Serial.println("retaring scale");
@@ -62,6 +79,9 @@ void updateScale(void *parameter) {
             tareScale();
         }
         if (loadcell.wait_ready_timeout(300)) {
+            float rawValue = loadcell.get_units(1); // 1 reading, raw
+            Serial.print("HX711 raw: ");
+            Serial.println(rawValue);
             lastEstimate = kalmanFilter.updateEstimate(loadcell.get_units(5));
             scaleWeight = lastEstimate;
             // Serial.printf("Scale reading: %.2f g\n", scaleWeight);
@@ -73,7 +93,7 @@ void updateScale(void *parameter) {
             weightHistory.push(scaleWeight);
             scaleReady = true;
         } else {
-            Serial.println("HX711 not found.");
+            Serial.println("HX711 not ready in updateScale loop.");
             scaleReady = false;
         }
     }
@@ -372,9 +392,12 @@ void setupScale() {
     
     Serial.println("Rotary encoder initialized successfully.");
     
-    Serial.println("Initializing load cell...");
+    Serial.println("Initializing load cell (HX711)...");
+    Serial.print("HX711 DOUT pin: "); Serial.println(LOADCELL_DOUT_PIN);
+    Serial.print("HX711 SCK pin: "); Serial.println(LOADCELL_SCK_PIN);
     // Set HX711 to 3.33Hz (low speed) mode
     loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN, true); // third param true = low speed (3.33Hz)
+    Serial.println("HX711 begin() called.");
     pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
     pinMode(GRIND_BUTTON_PIN, INPUT_PULLUP);
     digitalWrite(GRINDER_ACTIVE_PIN, 0); // Initialize LOW = NPN OFF = Grinder 5V signal HIGH = Grinder stopped
@@ -400,8 +423,11 @@ void setupScale() {
     preferences.end();
   Serial.printf("→ scaleFactor = %.0f  |  offset = %.0f\n", scaleFactor, offset);
   Serial.printf("→ Manual Grind Mode: %s\n", manualGrindMode ? "ENABLED" : "DISABLED");
+    Serial.print("Setting HX711 scale factor: "); Serial.println(scaleFactor);
     loadcell.set_scale(scaleFactor);
+    Serial.print("Setting HX711 offset: "); Serial.println(offset);
     loadcell.set_offset(offset);
+    Serial.println("HX711 scale and offset set.");
 
     xTaskCreatePinnedToCore(updateScale, "Scale", 10000, NULL, 0, &ScaleTask, 1);
     xTaskCreatePinnedToCore(scaleStatusLoop, "ScaleStatus", 10000, NULL, 0, &ScaleStatusTask, 1);

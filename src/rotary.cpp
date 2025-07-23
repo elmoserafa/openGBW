@@ -123,7 +123,13 @@ void rotary_onButtonClick()
         showTaringMessage();
         
         // Perform the tare operation
-        tareScale();
+        if (!tareScale()) {
+            Serial.println("Tare failed: HX711 not ready. Returning to menu.");
+            showErrorMessage("Tare failed\nHX711 not ready");
+            displayLock = false;
+            scaleStatus = STATUS_IN_MENU;
+            return;
+        }
         
         // Use a task to unlock the display after a delay instead of relying on rotary_loop
         xTaskCreatePinnedToCore(
@@ -244,13 +250,23 @@ void rotary_onButtonClick()
             case 0: // Calibration Menu
                 scaleStatus = STATUS_IN_SUBMENU;
                 currentSetting = 1;
-                tareScale();
+                if (!tareScale()) {
+                    Serial.println("Tare failed: HX711 not ready. Returning to menu.");
+                    showErrorMessage("Tare failed\nHX711 not ready");
+                    scaleStatus = STATUS_IN_MENU;
+                    break;
+                }
                 Serial.println("Calibration Menu");
                 break;
             case 1: // Cup Weight Menu
                 scaleStatus = STATUS_IN_SUBMENU;
                 currentSetting = 0;
-                tareScale(); // Tare the scale
+                if (!tareScale()) {
+                    Serial.println("Tare failed: HX711 not ready. Returning to menu.");
+                    showErrorMessage("Tare failed\nHX711 not ready");
+                    scaleStatus = STATUS_IN_MENU;
+                    break;
+                }
                 delay(500);  // Wait for stabilization
 
                 if (scaleWeight > 0)

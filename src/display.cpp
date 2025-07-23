@@ -1,3 +1,8 @@
+
+#include <U8g2lib.h>
+
+#include <U8g2lib.h>
+
 #include "config.hpp"
 #include "rotary.hpp"
 #include "web_server.hpp"
@@ -8,7 +13,12 @@ extern String currentIPAddress;
 
 // Time in milliseconds after which the display sleeps (10 seconds)
 int sleepTime = SLEEP_AFTER_MS;
-bool screenJustWoke = false;
+
+// ...existing code...
+
+
+// ...existing code...
+
 
 // Function to center-align and print text to the screen
 void CenterPrintToScreen(char const *str, u8g2_uint_t y)
@@ -17,6 +27,18 @@ void CenterPrintToScreen(char const *str, u8g2_uint_t y)
   screen.setCursor(128 / 2 - width / 2, y);    // Set the cursor position for center alignment
   screen.print(str);                           // Print the text
 }
+
+// Function to display an error message on the screen
+void showErrorMessage(const char* message) {
+  screen.clearBuffer();
+  screen.setFontPosTop();
+  screen.setFont(u8g2_font_7x14B_tf);
+  CenterPrintToScreen("ERROR", 0);
+  screen.setFont(u8g2_font_7x13_tr);
+  CenterPrintToScreen(message, 24);
+  screen.sendBuffer();
+}
+bool screenJustWoke = false;
 
 // Function to left-align and print text to the screen
 void LeftPrintToScreen(char const *str, u8g2_uint_t y)
