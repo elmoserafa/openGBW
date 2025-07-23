@@ -100,7 +100,7 @@ The included 3D Models are adapted to the Eureka Mignon XL and the Macap Leo E b
 |---|---|---|
 | + | VCC/3.3 | |
 | - | GND | |
-| S | GPIO 33 | |
+| S | GPIO 35 | |
 | Middle Screw Terminal | | push button |
 | NO Screw Terminal | | push button |
 

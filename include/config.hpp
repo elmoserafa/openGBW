@@ -54,7 +54,7 @@ class MenuItem
 #define MAX_GRINDING_TIME 20000 // 20 seconds diff
 #define GRINDING_FAILED_WEIGHT_TO_RESET 150 // force on balance need to be measured to reset grinding
 
-#define GRINDER_ACTIVE_PIN 33
+#define GRINDER_ACTIVE_PIN 26
 
 #define GRIND_BUTTON_PIN 25
 #define DEFAULT_GRIND_TRIGGER_MODE true  // true = use button, false = cup detection

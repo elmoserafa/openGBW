@@ -48,6 +48,8 @@ bool tareScale()
             loadcell.set_offset(offset);
             lastTareAt = millis();
             scaleWeight = 0;
+            // Reset Kalman filter after taring
+            kalmanFilter = SimpleKalmanFilter(0.02, 0.02, 0.01);
             Serial.println("Scale tared successfully");
             return true;
         } else {
@@ -98,14 +100,14 @@ void grinderToggle() {
     if (!scaleMode) {
         if (grindMode) {
             grinderActive = !grinderActive;
-            digitalWrite(GRINDER_ACTIVE_PIN, grinderActive);
+            digitalWrite(GRINDER_ACTIVE_PIN, grinderActive ? LOW : HIGH); // LOW = Relay ON, HIGH = Relay OFF
             Serial.print("Grinder toggled: ");
             Serial.println(grinderActive ? "ON" : "OFF");
         } else {
             Serial.println("Grinder ON (Impulse Mode)");
-            digitalWrite(GRINDER_ACTIVE_PIN, 1); // Pull 5V signal to ground via NPN
+            digitalWrite(GRINDER_ACTIVE_PIN, LOW); // Relay ON
             delay(100);
-            digitalWrite(GRINDER_ACTIVE_PIN, 0); // Release 5V signal (back to HIGH)
+            digitalWrite(GRINDER_ACTIVE_PIN, HIGH); // Relay OFF
             Serial.println("Grinder OFF");
         }
     }
@@ -132,13 +134,13 @@ void scaleStatusLoop(void *p) {
                     if (buttonCurrentlyPressed && !manualGrinderActive) {
                         // Button just pressed - start grinder
                         manualGrinderActive = true;
-                        digitalWrite(GRINDER_ACTIVE_PIN, HIGH); // Turn grinder ON
+                        digitalWrite(GRINDER_ACTIVE_PIN, LOW); // Relay ON
                         Serial.println("Manual grind: Grinder ON");
                         wakeScreen();
                     } else if (!buttonCurrentlyPressed && manualGrinderActive) {
                         // Button just released - stop grinder
                         manualGrinderActive = false;
-                        digitalWrite(GRINDER_ACTIVE_PIN, LOW); // Turn grinder OFF
+                        digitalWrite(GRINDER_ACTIVE_PIN, HIGH); // Relay OFF
                         Serial.println("Manual grind: Grinder OFF");
                     }
                     break; // Skip automatic grinding logic when in manual mode
@@ -380,7 +382,7 @@ void setupScale() {
     loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN); // default 10 Hz mode
     pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
     pinMode(GRIND_BUTTON_PIN, INPUT_PULLUP);
-    digitalWrite(GRINDER_ACTIVE_PIN, 0); // Initialize LOW = NPN OFF = Grinder 5V signal HIGH = Grinder stopped
+    digitalWrite(GRINDER_ACTIVE_PIN, HIGH); // Initialize HIGH = Relay OFF = Grinder stopped
     Serial.println("Load cell and pins initialized.");
 
     preferences.begin("scale", false);
