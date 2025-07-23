@@ -45,7 +45,7 @@ class MenuItem
 #define LOADCELL_DOUT_PIN 19
 #define LOADCELL_SCK_PIN 18
 
-#define LOADCELL_SCALE_FACTOR 1409.88
+#define LOADCELL_SCALE_FACTOR 1396.21
 
 #define TARE_MEASURES 20 // use the average of measure for taring
 #define SIGNIFICANT_WEIGHT_CHANGE 5 // 5 grams changes are used to detect a significant change

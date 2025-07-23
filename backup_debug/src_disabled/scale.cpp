@@ -37,20 +37,18 @@ unsigned long taringMessageStartTime = 0;
 // Manual grinding mode - grinder controlled directly by button
 bool manualGrindMode = false;
 
-double scaleFactor = 1409.88; // Standard scale factor, can be updated by calibration
-
 void tareScale()
 {
-    Serial.println("Taring scale (non-blocking)...");
-    if (loadcell.wait_ready_timeout(500)) {
-        long offset = loadcell.read_average(10); // Average 10 readings for stability
-        loadcell.set_offset(offset);
-        lastTareAt = millis();
-        scaleWeight = 0;
-        Serial.println("Scale tared successfully");
-    } else {
-        Serial.println("Tare failed: HX711 not ready.");
+    Serial.println("Taring scale...");
+    // Use set_offset instead of tare() to avoid blocking
+    // Get current reading and set it as the new offset
+    if (loadcell.wait_ready_timeout(100)) {
+        long currentReading = loadcell.read_average(1); // Just 1 quick reading
+        loadcell.set_offset(currentReading);
     }
+    lastTareAt = millis();        // Update the timestamp
+    scaleWeight = 0;              // Reset the displayed weight
+    Serial.println("Scale tared successfully");
 }
 
 // Task to continuously update the scale readings
@@ -64,11 +62,11 @@ void updateScale(void *parameter) {
             tareScale();
         }
         if (loadcell.wait_ready_timeout(300)) {
-            long raw = loadcell.read_average(5);
-            double grams = (double)(raw - loadcell.get_offset()) / scaleFactor;
-            scaleWeight = kalmanFilter.updateEstimate(grams);
+            lastEstimate = kalmanFilter.updateEstimate(loadcell.get_units(5));
+            scaleWeight = lastEstimate;
             // Serial.printf("Scale reading: %.2f g\n", scaleWeight);
-            if (ABS(scaleWeight) < 3) {
+            if (ABS(scaleWeight) < 3)
+            {
                 scaleWeight = 0;
             }
             scaleLastUpdatedAt = millis();
@@ -375,8 +373,8 @@ void setupScale() {
     Serial.println("Rotary encoder initialized successfully.");
     
     Serial.println("Initializing load cell...");
-    // Set HX711 to 10Hz (default debug mode)
-    loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN); // default 10 Hz mode
+    // Set HX711 to 3.33Hz (low speed) mode
+    loadcell.begin(LOADCELL_DOUT_PIN, LOADCELL_SCK_PIN, true); // third param true = low speed (3.33Hz)
     pinMode(GRINDER_ACTIVE_PIN, OUTPUT);
     pinMode(GRIND_BUTTON_PIN, INPUT_PULLUP);
     digitalWrite(GRINDER_ACTIVE_PIN, 0); // Initialize LOW = NPN OFF = Grinder 5V signal HIGH = Grinder stopped
@@ -402,8 +400,8 @@ void setupScale() {
     preferences.end();
   Serial.printf("→ scaleFactor = %.0f  |  offset = %.0f\n", scaleFactor, offset);
   Serial.printf("→ Manual Grind Mode: %s\n", manualGrindMode ? "ENABLED" : "DISABLED");
-    // loadcell.set_scale(scaleFactor); // Not used in debug form
-    // loadcell.set_offset(offset); // Not used in debug form
+    loadcell.set_scale(scaleFactor);
+    loadcell.set_offset(offset);
 
     xTaskCreatePinnedToCore(updateScale, "Scale", 10000, NULL, 0, &ScaleTask, 1);
     xTaskCreatePinnedToCore(scaleStatusLoop, "ScaleStatus", 10000, NULL, 0, &ScaleStatusTask, 1);
