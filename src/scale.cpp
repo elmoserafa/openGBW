@@ -4,6 +4,10 @@
 #include "display.hpp"
 
 // Variables for scale functionality
+// HX711 operation flags
+volatile bool requestTare = false;
+volatile bool requestSetOffset = false;
+volatile bool requestCalibration = false;
 double scaleWeight = 0;       // Current weight measured by the scale
 double setWeight = 0;         // Target weight set by the user
 double setCupWeight = 0;      // Weight of the cup set by the user
@@ -41,52 +45,74 @@ double scaleFactor = 1409.88; // Standard scale factor, can be updated by calibr
 
 bool tareScale()
 {
-    Serial.println("Taring scale (non-blocking)...");
-    for (int attempt = 1; attempt <= 3; ++attempt) {
-        if (loadcell.wait_ready_timeout(1000)) {
-            long offset = loadcell.read_average(10); // Average 10 readings for stability
-            loadcell.set_offset(offset);
-            lastTareAt = millis();
-            scaleWeight = 0;
-            // Reset Kalman filter after taring
-            kalmanFilter = SimpleKalmanFilter(0.02, 0.02, 0.01);
-            Serial.println("Scale tared successfully");
-            return true;
-        } else {
-            Serial.print("Tare attempt ");
-            Serial.print(attempt);
-            Serial.println(": HX711 not ready, retrying...");
-            delay(200);
-        }
-    }
-    Serial.println("Tare failed: HX711 not ready after retries.");
-    return false;
+    // Set tare request flag, actual tare will be performed in updateScale
+    requestTare = true;
+    // Do not perform HX711 operations here
+    return true;
 }
 
 // Task to continuously update the scale readings
 void updateScale(void *parameter) {
     float lastEstimate;
     const TickType_t xDelay = 100 / portTICK_PERIOD_MS; // 10Hz = 100ms interval
+    int hx711_fail_count = 0;
     for (;;) {
+        vTaskDelay(1); // Minimal delay to mitigate timing/race condition
+        // Request tare on startup if needed
         if (lastTareAt == 0) {
-            Serial.println("retaring scale");
-            Serial.println("current offset");
-            Serial.println(offset);
-            tareScale();
+            requestTare = true;
         }
-        if (loadcell.wait_ready_timeout(300)) {
+        // Serialize HX711 access: handle tare request first
+        if (requestTare) {
+            Serial.println("Taring scale (serialized in updateScale)...");
+            bool tareSuccess = false;
+            for (int attempt = 1; attempt <= 3; ++attempt) {
+                Serial.printf("[tareScale] Attempt %d: Waiting for HX711 ready...\n", attempt);
+                unsigned long t0 = millis();
+                bool ready = loadcell.wait_ready_timeout(1000);
+                Serial.printf("[tareScale] wait_ready_timeout returned %s after %lu ms\n", ready ? "true" : "false", millis() - t0);
+                if (ready) {
+                    Serial.println("[tareScale] HX711 ready, reading average...");
+                    t0 = millis();
+                    long offset = loadcell.read_average(10); // Average 10 readings for stability
+                    Serial.printf("[tareScale] read_average finished after %lu ms\n", millis() - t0);
+                    loadcell.set_offset(offset);
+                    lastTareAt = millis();
+                    scaleWeight = 0;
+                    kalmanFilter = SimpleKalmanFilter(0.02, 0.02, 0.01);
+                    Serial.println("Scale tared successfully");
+                    tareSuccess = true;
+                    break;
+                } else {
+                    Serial.print("Tare attempt ");
+                    Serial.print(attempt);
+                    Serial.println(": HX711 not ready, retrying...");
+                    Serial.println("[tareScale] Delaying for 200ms...");
+                    unsigned long d0 = millis();
+                    delay(200);
+                    Serial.printf("[tareScale] Delay finished after %lu ms\n", millis() - d0);
+                }
+            }
+            requestTare = false;
+            // If tare failed, skip regular sampling this cycle
+            if (!tareSuccess) {
+                vTaskDelay(xDelay);
+                continue;
+            }
+        }
+        // Regular HX711 sampling
+        unsigned long t0 = millis();
+        bool ready = loadcell.wait_ready_timeout(300);
+        if (ready) {
+            hx711_fail_count = 0;
             if (scaleStatus == STATUS_GRINDING_IN_PROGRESS) {
-                // Direct measurement, no averaging
                 long raw = loadcell.read();
                 double grams = (double)(raw - loadcell.get_offset()) / scaleFactor;
                 scaleWeight = kalmanFilter.updateEstimate(grams);
-                // Serial.printf("HX711 raw: %ld, offset: %ld, grams: %.2f, filtered: %.2f\n", raw, loadcell.get_offset(), grams, scaleWeight);
             } else {
-                // Normal mode with averaging
                 long raw = loadcell.read_average(5);
                 double grams = (double)(raw - loadcell.get_offset()) / scaleFactor;
                 scaleWeight = kalmanFilter.updateEstimate(grams);
-                // Serial.printf("HX711 raw: %ld, offset: %ld, grams: %.2f, filtered: %.2f\n", raw, loadcell.get_offset(), grams, scaleWeight);
             }
             if (ABS(scaleWeight) < 3) {
                 scaleWeight = 0;
@@ -95,8 +121,14 @@ void updateScale(void *parameter) {
             weightHistory.push(scaleWeight);
             scaleReady = true;
         } else {
+            hx711_fail_count++;
             Serial.println("HX711 not found.");
             scaleReady = false;
+            if (scaleStatus != STATUS_GRINDING_IN_PROGRESS && hx711_fail_count >= 5) {
+                Serial.println("HX711 failed 5 times, skipping readings for 500ms.");
+                vTaskDelay(500 / portTICK_PERIOD_MS);
+                hx711_fail_count = 0;
+            }
         }
         vTaskDelay(xDelay); // Wait 100ms before next read (10Hz)
     }
@@ -104,30 +136,35 @@ void updateScale(void *parameter) {
 
 // Toggles the grinder on or off based on mode
 void grinderToggle() {
-    if (!scaleMode) {
-        if (grindMode) {
-            grinderActive = !grinderActive;
-            digitalWrite(GRINDER_ACTIVE_PIN, grinderActive ? LOW : HIGH); // LOW = Relay ON, HIGH = Relay OFF
-            Serial.print("Grinder toggled: ");
-            Serial.println(grinderActive ? "ON" : "OFF");
-        } else {
-            Serial.println("Grinder ON (Impulse Mode)");
-            digitalWrite(GRINDER_ACTIVE_PIN, LOW); // Relay ON
-            delay(100);
-            digitalWrite(GRINDER_ACTIVE_PIN, HIGH); // Relay OFF
-            Serial.println("Grinder OFF");
-        }
+    Serial.println("[grinderToggle] called");
+    // Toggle grinder/LED output
+    if (!grinderActive) {
+        Serial.println("[grinderToggle] BEFORE digitalWrite ON");
+        digitalWrite(GRINDER_ACTIVE_PIN, LOW); // Relay/LED ON
+        delay(1); // Minimal delay after toggling ON
+        Serial.println("[grinderToggle] AFTER digitalWrite ON");
+        grinderActive = true;
+        Serial.println("Grinder/LED ON");
+    } else {
+        Serial.println("[grinderToggle] BEFORE digitalWrite OFF");
+        digitalWrite(GRINDER_ACTIVE_PIN, HIGH); // Relay/LED OFF
+        delay(1); // Minimal delay after toggling OFF
+        Serial.println("[grinderToggle] AFTER digitalWrite OFF");
+        grinderActive = false;
+        Serial.println("Grinder/LED OFF");
     }
 }
 
 // Task to manage the status of the scale
 void scaleStatusLoop(void *p) {
     for (;;) {
+        // Monitor heap and stack usage (deactivated)
+        // Serial.printf("[Heap] Free: %u | [Stack] High Water Mark: %u\n", ESP.getFreeHeap(), uxTaskGetStackHighWaterMark(NULL));
+        vTaskDelay(1); // Minimal delay to mitigate timing/race condition
         double tenSecAvg = weightHistory.averageSince((int64_t)millis() - 10000);
         if (ABS(tenSecAvg - scaleWeight) > SIGNIFICANT_WEIGHT_CHANGE) {
             lastSignificantWeightChangeAt = millis();
         }
-
         switch (scaleStatus) {
             case STATUS_EMPTY: {
                 // Auto-tare is disabled except for startup (handled in updateScale)
@@ -141,13 +178,19 @@ void scaleStatusLoop(void *p) {
                     if (buttonCurrentlyPressed && !manualGrinderActive) {
                         // Button just pressed - start grinder
                         manualGrinderActive = true;
+                        Serial.println("[ManualGrind] BEFORE digitalWrite ON");
                         digitalWrite(GRINDER_ACTIVE_PIN, LOW); // Relay ON
+                        delay(1); // Minimal delay after toggling ON
+                        Serial.println("[ManualGrind] AFTER digitalWrite ON");
                         Serial.println("Manual grind: Grinder ON");
                         wakeScreen();
                     } else if (!buttonCurrentlyPressed && manualGrinderActive) {
                         // Button just released - stop grinder
                         manualGrinderActive = false;
+                        Serial.println("[ManualGrind] BEFORE digitalWrite OFF");
                         digitalWrite(GRINDER_ACTIVE_PIN, HIGH); // Relay OFF
+                        delay(1); // Minimal delay after toggling OFF
+                        Serial.println("[ManualGrind] AFTER digitalWrite OFF");
                         Serial.println("Manual grind: Grinder OFF");
                     }
                     break; // Skip automatic grinding logic when in manual mode
@@ -422,6 +465,6 @@ void setupScale() {
     // loadcell.set_scale(scaleFactor); // Not used in debug form
     // loadcell.set_offset(offset); // Not used in debug form
 
-    xTaskCreatePinnedToCore(updateScale, "Scale", 10000, NULL, 0, &ScaleTask, 1);
-    xTaskCreatePinnedToCore(scaleStatusLoop, "ScaleStatus", 10000, NULL, 0, &ScaleStatusTask, 1);
+    xTaskCreatePinnedToCore(updateScale, "Scale", 20000, NULL, 0, &ScaleTask, 1);
+    xTaskCreatePinnedToCore(scaleStatusLoop, "ScaleStatus", 20000, NULL, 0, &ScaleStatusTask, 1);
 }
