@@ -21,6 +21,12 @@ volatile bool displayLock = false;
 void setup() {
     Serial.begin(115200);
     
+    // Deactivate WiFi and Bluetooth on ESP32 startup
+    WiFi.mode(WIFI_OFF);
+    WiFi.disconnect(true);
+#ifdef ARDUINO_ARCH_ESP32
+    btStop();
+#endif
     // Setup other components
     setupDisplay();
     setupScale();

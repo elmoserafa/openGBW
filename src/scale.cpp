@@ -75,10 +75,19 @@ void updateScale(void *parameter) {
             tareScale();
         }
         if (loadcell.wait_ready_timeout(300)) {
-            long raw = loadcell.read_average(5);
-            double grams = (double)(raw - loadcell.get_offset()) / scaleFactor;
-            scaleWeight = kalmanFilter.updateEstimate(grams);
-            Serial.printf("HX711 raw: %ld, offset: %ld, grams: %.2f, filtered: %.2f\n", raw, loadcell.get_offset(), grams, scaleWeight);
+            if (scaleStatus == STATUS_GRINDING_IN_PROGRESS) {
+                // Direct measurement, no averaging
+                long raw = loadcell.read();
+                double grams = (double)(raw - loadcell.get_offset()) / scaleFactor;
+                scaleWeight = kalmanFilter.updateEstimate(grams);
+                // Serial.printf("HX711 raw: %ld, offset: %ld, grams: %.2f, filtered: %.2f\n", raw, loadcell.get_offset(), grams, scaleWeight);
+            } else {
+                // Normal mode with averaging
+                long raw = loadcell.read_average(5);
+                double grams = (double)(raw - loadcell.get_offset()) / scaleFactor;
+                scaleWeight = kalmanFilter.updateEstimate(grams);
+                // Serial.printf("HX711 raw: %ld, offset: %ld, grams: %.2f, filtered: %.2f\n", raw, loadcell.get_offset(), grams, scaleWeight);
+            }
             if (ABS(scaleWeight) < 3) {
                 scaleWeight = 0;
             }
@@ -94,8 +103,6 @@ void updateScale(void *parameter) {
 }
 
 // Toggles the grinder on or off based on mode
-// GPIO HIGH = NPN transistor ON = Pulls grinder 5V signal to ground = Grinder starts
-// GPIO LOW = NPN transistor OFF = Grinder 5V signal stays high = Grinder stops
 void grinderToggle() {
     if (!scaleMode) {
         if (grindMode) {
@@ -211,8 +218,8 @@ void scaleStatusLoop(void *p) {
                 scaleStatus = STATUS_GRINDING_FAILED;
                 continue;
             }
-            if (millis() - startedGrindingAt > 2000 &&
-                scaleWeight - weightHistory.firstValueOlderThan(millis() - 2000) < 1 &&
+            if (millis() - startedGrindingAt > 5000 &&
+                scaleWeight - weightHistory.firstValueOlderThan(millis() - 5000) < 1 &&
                     !scaleMode) {
                 Serial.println("GRINDING FAILED: No weight increase after 2 seconds");
                 grinderToggle();
@@ -230,12 +237,20 @@ void scaleStatusLoop(void *p) {
                 if (scaleMode) {
                 currentOffset = 0;
             }
-                if (weightHistory.maxSince((int64_t)millis() - 200) >= cupWeightEmpty + setWeight + currentOffset) {
-                finishedGrindingAt = millis();
-                grinderToggle();
-                scaleStatus = STATUS_GRINDING_FINISHED;
-                continue;
-            }
+                double grindTarget;
+                if (grindMode && !manualGrindMode) {
+                    // Button-activated automatic grinding: ignore cup weight
+                    grindTarget = setWeight + currentOffset;
+                } else {
+                    // Other modes: include cup weight
+                    grindTarget = cupWeightEmpty + setWeight + currentOffset;
+                }
+                if (weightHistory.maxSince((int64_t)millis() - 200) >= grindTarget) {
+                    finishedGrindingAt = millis();
+                    grinderToggle();
+                    scaleStatus = STATUS_GRINDING_FINISHED;
+                    continue;
+                }
             break;
         }
         case STATUS_GRINDING_FINISHED:
@@ -252,39 +267,38 @@ void scaleStatusLoop(void *p) {
             }
 
             double currentWeight = weightHistory.averageSince((int64_t)millis() - 500);
-                if (scaleWeight < 5) {
+            if (scaleWeight < 5) {
                 startedGrindingAt = 0;
                 grindingFinishedAt = 0; // Reset the timestamp
                 scaleWeight = 0;
                 scaleStatus = STATUS_EMPTY;
                 continue;
-                } else if (millis() - finishedGrindingAt > 2000 && newOffset && AUTO_OFFSET_ADJUSTMENT) {
+            } else if (millis() - finishedGrindingAt > 2000 && newOffset && AUTO_OFFSET_ADJUSTMENT) {
                 // Wait 2 seconds for all coffee to settle, then auto-adjust offset
-                double targetTotalWeight = setWeight + cupWeightEmpty;
+                double targetTotalWeight;
+                if (grindMode && !manualGrindMode) {
+                    // Button-activated automatic grinding: ignore cup weight
+                    targetTotalWeight = setWeight;
+                } else {
+                    // Other modes: include cup weight
+                    targetTotalWeight = setWeight + cupWeightEmpty;
+                }
                 double actualWeight = currentWeight;
                 double weightError = targetTotalWeight - actualWeight;
-                
+
                 if (ABS(weightError) > 0.3) { // Only adjust if error is significant (>0.3g)
                     double oldOffset = offset;
                     offset += weightError;
-                    
                     // Constrain offset to reasonable limits
                     if (offset > 5.0) offset = 5.0;
                     if (offset < -5.0) offset = -5.0;
-                    
-                    Serial.printf("AUTO OFFSET ADJUSTMENT:\n");
-                    Serial.printf("  Target: %.1fg, Actual: %.1fg, Error: %.1fg\n", 
-                                 targetTotalWeight, actualWeight, weightError);
-                    Serial.printf("  Old offset: %.2fg -> New offset: %.2fg\n", 
-                                 oldOffset, offset);
-                    
+                    // Serial output disabled for performance
                     shotCount++;
                     preferences.begin("scale", false);
                     preferences.putDouble("offset", offset);
                     preferences.putUInt("shotCount", shotCount);
                     preferences.end();
                 } else {
-                    Serial.printf("Grinding accuracy good (error: %.1fg) - no offset adjustment needed\n", weightError);
                     shotCount++;
                     preferences.begin("scale", false);
                     preferences.putUInt("shotCount", shotCount);
