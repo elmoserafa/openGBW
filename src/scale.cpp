@@ -318,30 +318,38 @@ void scaleStatusLoop(void *p) {
                 continue;
             } else if (millis() - finishedGrindingAt > 2000 && newOffset && AUTO_OFFSET_ADJUSTMENT) {
                 // Wait 2 seconds for all coffee to settle, then auto-adjust offset
-                double targetTotalWeight;
-                if (grindMode && !manualGrindMode) {
-                    // Button-activated automatic grinding: ignore cup weight
-                    targetTotalWeight = setWeight;
-                } else {
-                    // Other modes: include cup weight
-                    targetTotalWeight = setWeight + cupWeightEmpty;
-                }
-                double actualWeight = currentWeight;
-                double weightError = targetTotalWeight - actualWeight;
+                if (!manualGrindMode) {
+                    double targetTotalWeight;
+                    if (grindMode && !manualGrindMode) {
+                        // Button-activated automatic grinding: ignore cup weight
+                        targetTotalWeight = setWeight;
+                    } else {
+                        // Other modes: include cup weight
+                        targetTotalWeight = setWeight + cupWeightEmpty;
+                    }
+                    double actualWeight = currentWeight;
+                    double weightError = targetTotalWeight - actualWeight;
 
-                if (ABS(weightError) > 0.3) { // Only adjust if error is significant (>0.3g)
-                    double oldOffset = offset;
-                    offset += weightError;
-                    // Constrain offset to reasonable limits
-                    if (offset > 5.0) offset = 5.0;
-                    if (offset < -5.0) offset = -5.0;
-                    // Serial output disabled for performance
-                    shotCount++;
-                    preferences.begin("scale", false);
-                    preferences.putDouble("offset", offset);
-                    preferences.putUInt("shotCount", shotCount);
-                    preferences.end();
+                    if (ABS(weightError) > 0.3) { // Only adjust if error is significant (>0.3g)
+                        double oldOffset = offset;
+                        offset += weightError;
+                        // Constrain offset to reasonable limits
+                        if (offset > 5.0) offset = 5.0;
+                        if (offset < -5.0) offset = -5.0;
+                        // Serial output disabled for performance
+                        shotCount++;
+                        preferences.begin("scale", false);
+                        preferences.putDouble("offset", offset);
+                        preferences.putUInt("shotCount", shotCount);
+                        preferences.end();
+                    } else {
+                        shotCount++;
+                        preferences.begin("scale", false);
+                        preferences.putUInt("shotCount", shotCount);
+                        preferences.end();
+                    }
                 } else {
+                    // Manual grind mode: do not adjust offset, just increment shotCount
                     shotCount++;
                     preferences.begin("scale", false);
                     preferences.putUInt("shotCount", shotCount);
